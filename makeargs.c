@@ -156,10 +156,22 @@ static void makeargs_getenv()
 
 static int makeargs_set_vars(const int argc, const char** argv)
 {
-	for (int i = 0; i < argc; i++)
+	int i = 1;
+
+	while (i < argc)
 	{
-		makeargs_set_from_var(argv[i]);
+		if (MAKEARGS_STRCMP(argv[i], MAKEARGS_SEPARATOR) == 0)
+		{
+			return i + 1;
+		}
+		else
+		{
+			makeargs_set_from_var(argv[i]);
+			i++;
+		}
 	}
+
+	return i;
 }
 
 static int makeargs_run_targets(const int argc, const char** argv)
@@ -170,12 +182,15 @@ static int makeargs_run_targets(const int argc, const char** argv)
 		return 1;
 	}
 
-	for (int i = 1; i < argc; i++)
+	int i = 1;
+
+	while (i < argc)
 	{
 		char* eq_pos = MAKEARGS_STRCHR(argv[i], '=');
 
 		if (eq_pos != NULL)
 		{
+			i++;
 			continue;
 		}
 		else if (MAKEARGS_STRCMP(argv[i], MAKEARGS_SEPARATOR) == 0)
@@ -187,6 +202,7 @@ static int makeargs_run_targets(const int argc, const char** argv)
 	{                                                \
 		LOG_PRINTF("%s()\n", argv[i]);                 \
 		target();                                      \
+		i++;                                           \
 	}
 
 		MAKEARGS_TARGETS
@@ -199,7 +215,7 @@ static int makeargs_run_targets(const int argc, const char** argv)
 		}
 	}
 
-	return 0;
+	return i;
 }
 #else
 static char* makeargs_get(const char* name);
