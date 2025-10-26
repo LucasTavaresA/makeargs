@@ -1,0 +1,10 @@
+If:
+  PathMatch: makeargs.c
+
+CompileFlags:
+  Add:
+    - -DMAKEARGS_IMPLEMENTATION
+    - -include ./log.c
+    - -include stdio.h
+    - -include stdlib.h
+    - -include string.h
