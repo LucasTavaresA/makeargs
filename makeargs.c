@@ -11,6 +11,12 @@
 #error "MAKEARGS_TARGETS must be defined"
 #endif
 
+#ifdef MAKEARGS_DRY_RUN
+#define MAKEARGS_CALL(target)
+#else
+#define MAKEARGS_CALL(target) target()
+#endif
+
 #ifndef MAKEARGS_STRLEN
 #define MAKEARGS_STRLEN(s) strlen(s)
 #endif
@@ -203,7 +209,7 @@ static int makeargs_run_targets(const int argc, const char** argv)
 	else if (MAKEARGS_STRCMP(argv[i], #target) == 0) \
 	{                                                \
 		LOG_PRINTF("%s()\n", argv[i]);                 \
-		target();                                      \
+		MAKEARGS_CALL(target);                         \
 		i++;                                           \
 	}
 
