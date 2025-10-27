@@ -27,6 +27,10 @@
 #define MAKEARGS_STRCPY(s1, s2) strcpy(s1, s2)
 #endif
 
+#ifndef MAKEARGS_STRNCPY
+#define MAKEARGS_STRNCPY(s1, s2, n) strncpy(s1, s2, n)
+#endif
+
 #ifndef MAKEARGS_ENVIRON
 #ifdef _WIN32
 extern char** _environ;
@@ -136,13 +140,11 @@ static void makeargs_set_from_var(const char* var)
 
 	if (eq_pos != NULL)
 	{
-		// temporary null-termination turns 'name=value\0' into 'name\0value\0'
-		char eq_sign = *eq_pos;
-		*eq_pos = '\0';
-
-		makeargs_set(var, eq_pos + 1);
-
-		*eq_pos = eq_sign;
+		char name[MAKEARGS_VAR_LENGTH];
+		size_t len = eq_pos - var;
+		MAKEARGS_STRNCPY(name, var, len);
+		name[len] = '\0';
+		makeargs_set(name, eq_pos + 1);
 	}
 }
 
