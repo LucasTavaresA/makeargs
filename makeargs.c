@@ -1,16 +1,62 @@
+/// prints the help message.
+/// generated based on your MAKEARGS_TARGETS.
+static inline void makeargs_help(const char* argv0);
+
+/// returns the value of a variable.
+/// halts if the variable is not found.
+static char* makeargs_get(const char* name);
+
+/// appends a to a variable.
+/// halts if the variable is not found.
+/// halts if the appended variable is too long.
+static void makeargs_append(const char* name, const char* suffix);
+
+/// sets a variable.
+/// halts if you have too many variables.
+/// halts if the variable name or value is too long.
+static void makeargs_set(const char* name, const char* value);
+
+/// sets a variable from a env variable, like "NAME=value".
+/// halts if you have too many variables.
+/// halts if the variable name or value is too long.
+static void makeargs_set_from_var(const char* var);
+
+/// sets all the variables based on the environment variables.
+/// halts if you have too many variables.
+/// halts if the variable name or value is too long.
+static void makeargs_getenv();
+
+/// sets all the variables based on the command line arguments.
+/// halts if you have too many variables.
+/// halts if the variable name or value is too long.
+/// returns the last index or the index after MAKEARGS_SEPARATOR.
+static int makeargs_set_vars(const int argc, const char** argv);
+
+/// runs the targets based on the command line arguments.
+/// prints the help message if no target is specified.
+/// skips all arguments with '='.
+/// returns the last index or the index after MAKEARGS_SEPARATOR.
+static int makeargs_run_targets(const int argc, const char** argv);
+
 #ifdef MAKEARGS_IMPLEMENTATION
+/// makeargs will stop parsing at this separator
 #ifndef MAKEARGS_SEPARATOR
 #define MAKEARGS_SEPARATOR "--"
 #endif
 
+/// function to call when no target is specified or when a unknown target is specified
+/// by default prints a message based on your MAKEARGS_TARGETS
 #ifndef MAKEARGS_DEFAULT_TARGET
 #define MAKEARGS_DEFAULT_TARGET makeargs_help
 #endif
 
+// an X macro list of all your targets, each target is defined like this:
+// MAKEARGS_TARGET(name, description)
 #ifndef MAKEARGS_TARGETS
 #error "MAKEARGS_TARGETS must be defined"
 #endif
 
+/// when set, targets will be printed without being called
 #ifdef MAKEARGS_DRY_RUN
 #define MAKEARGS_CALL(target)
 #else
@@ -47,10 +93,12 @@ extern char** environ;
 #endif
 #endif
 
+/// maximum number of variables that can be set
 #ifndef MAKEARGS_MAX_VARS
 #define MAKEARGS_MAX_VARS 256
 #endif
 
+/// maximum length of a variable name or value
 #ifndef MAKEARGS_VAR_LENGTH
 #define MAKEARGS_VAR_LENGTH 1024
 #endif
@@ -225,14 +273,6 @@ static int makeargs_run_targets(const int argc, const char** argv)
 
 	return i;
 }
-#else
-static char* makeargs_get(const char* name);
-static void makeargs_append(const char* name, const char* suffix);
-static void makeargs_set(const char* name, const char* value);
-static void makeargs_set_from_var(const char* var);
-static void makeargs_getenv();
-static int makeargs_set_vars(const int argc, const char** argv);
-static int makeargs_run_targets(const int argc, const char** argv);
 #endif	// MAKEARGS_IMPLEMENTATION
 // Licensed under the LGPL3 or later versions of the LGPL license.
 // See the LICENSE file in the project root for more information.
