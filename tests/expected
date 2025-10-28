@@ -1,0 +1,127 @@
+./test 
+Usage: ./test [build|run]
+  build 	 
+  run 	 
+1 <- makeargs_run_targets()
+1 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test build 
+build()
+2 <- makeargs_run_targets()
+2 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test build run 
+build()
+run()
+3 <- makeargs_run_targets()
+3 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test -- 
+2 <- makeargs_run_targets()
+2 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test build -- 
+build()
+3 <- makeargs_run_targets()
+3 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test run build -- 
+run()
+build()
+4 <- makeargs_run_targets()
+4 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test -- -s 
+2 <- makeargs_run_targets()
+2 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test build -- -s 
+build()
+3 <- makeargs_run_targets()
+3 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test build run -- -s 
+build()
+run()
+4 <- makeargs_run_targets()
+4 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test -- -s --test 
+2 <- makeargs_run_targets()
+2 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test build -- -s 
+build()
+3 <- makeargs_run_targets()
+3 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test run build -- -s --test 
+run()
+build()
+4 <- makeargs_run_targets()
+4 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test CONTAINER=docker 
+2 <- makeargs_run_targets()
+2 <- makeargs_set_vars()
+CONTAINER="docker"
+--------------------------------------------------------------------------------
+./test run CONTAINER=docker build 
+run()
+build()
+4 <- makeargs_run_targets()
+4 <- makeargs_set_vars()
+CONTAINER="docker"
+--------------------------------------------------------------------------------
+./test CONTAINER= 
+2 <- makeargs_run_targets()
+2 <- makeargs_set_vars()
+CONTAINER=""
+--------------------------------------------------------------------------------
+./test run CONTAINER= build 
+run()
+build()
+4 <- makeargs_run_targets()
+4 <- makeargs_set_vars()
+CONTAINER=""
+--------------------------------------------------------------------------------
+./test build VAR= 
+build()
+3 <- makeargs_run_targets()
+3 <- makeargs_set_vars()
+VAR=""
+--------------------------------------------------------------------------------
+./test VAR= build 
+build()
+3 <- makeargs_run_targets()
+3 <- makeargs_set_vars()
+VAR=""
+--------------------------------------------------------------------------------
+./test build -- DEBUG=1 
+build()
+3 <- makeargs_run_targets()
+3 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test build -- DEBUG= 
+build()
+3 <- makeargs_run_targets()
+3 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test FOO=bar -- -s 
+3 <- makeargs_run_targets()
+3 <- makeargs_set_vars()
+FOO="bar"
+--------------------------------------------------------------------------------
+./test -- FOO=bar 
+2 <- makeargs_run_targets()
+2 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
+./test FOO= -- -s 
+3 <- makeargs_run_targets()
+3 <- makeargs_set_vars()
+FOO=""
+--------------------------------------------------------------------------------
+./test -- FOO= 
+2 <- makeargs_run_targets()
+2 <- makeargs_set_vars()
+--------------------------------------------------------------------------------
