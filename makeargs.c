@@ -67,17 +67,17 @@ static int makeargs_vars_count = 0;
 
 static inline void makeargs_help(const char* argv0)
 {
-	LOG_PRINTF("Usage: %s [", argv0);
+	LOG_MSG("Usage: %s [", argv0);
 	const char* sep = "";
 #define MAKEARGS_TARGET(target, ...) \
-	LOG_PRINTF("%s" #target, sep);     \
+	LOG_MSG("%s" #target, sep);        \
 	sep = "|";
 	MAKEARGS_TARGETS
 #undef MAKEARGS_TARGET
-	LOG_PRINTF("]\n");
+	LOG_MSG("]\n");
 
 #define MAKEARGS_TARGET(target, ...) \
-	LOG_PRINTF("  " #target " \t " __VA_ARGS__ "\n");
+	LOG_MSG("  " #target " \t " __VA_ARGS__ "\n");
 	MAKEARGS_TARGETS
 #undef MAKEARGS_TARGET
 }
@@ -208,7 +208,7 @@ static int makeargs_run_targets(const int argc, const char** argv)
 #define MAKEARGS_TARGET(target, ...)               \
 	else if (MAKEARGS_STRCMP(argv[i], #target) == 0) \
 	{                                                \
-		LOG_PRINTF("%s()\n", argv[i]);                 \
+		LOG_MSG("%s()\n", argv[i]);                    \
 		MAKEARGS_CALL(target);                         \
 		i++;                                           \
 	}
@@ -217,7 +217,7 @@ static int makeargs_run_targets(const int argc, const char** argv)
 #undef MAKEARGS_TARGET
 		else
 		{
-			LOG_ERROR("%s:%d: Unknown target %s()\n", __FILE__, __LINE__, argv[i]);
+			LOG_FPRINTF(LOG_STDERR, "%s:%d: Unknown target %s()\n", __FILE__, __LINE__, argv[i]);
 			MAKEARGS_DEFAULT_TARGET(argv[0]);
 			LOG_EXIT(1);
 		}

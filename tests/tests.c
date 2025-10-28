@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 FILE* out;
-#define LOG_OUT out
+#define LOG_STDOUT out
 #include "../log.c"
 
 #define MAKEARGS_DRY_RUN
@@ -63,10 +64,10 @@ void print_args(const int argc, const char** argv)
 
 	while (i < argc)
 	{
-		LOG_PRINTF("%s ", argv[i]);
+		LOG_MSG("%s ", argv[i]);
 		i++;
 	}
-	LOG_PRINTF("\n");
+	LOG_MSG("\n");
 }
 
 int main(int argc, const char** argv)
@@ -87,19 +88,18 @@ int main(int argc, const char** argv)
 		{
 			print_args(test_args[i].argc, test_args[i].argv);
 			int ret = makeargs_run_targets(test_args[i].argc, test_args[i].argv);
-			LOG_PRINTF("%d <- makeargs_run_targets()\n", ret);
+			LOG_MSG("%d <- makeargs_run_targets()\n", ret);
 
 			ret = makeargs_set_vars(test_args[i].argc, test_args[i].argv);
-			LOG_PRINTF("%d <- makeargs_set_vars()\n", ret);
+			LOG_MSG("%d <- makeargs_set_vars()\n", ret);
 
 			for (int i = 0; i < makeargs_vars_count; i++)
 			{
-				LOG_PRINTF("%s=\"%s\"\n", makeargs_vars[i].name,
-									 makeargs_vars[i].value);
+				LOG_MSG("%s=\"%s\"\n", makeargs_vars[i].name, makeargs_vars[i].value);
 			}
 
 			makeargs_vars_count = 0;
-			LOG_PRINTF(SEPARATOR);
+			LOG_MSG(SEPARATOR);
 		}
 	}
 
