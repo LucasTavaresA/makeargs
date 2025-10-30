@@ -56,11 +56,11 @@ static int makeargs_run_targets(const int argc, const char** argv);
 #error "MAKEARGS_TARGETS must be defined"
 #endif
 
-/// when set, targets will be printed without being called
-#ifdef MAKEARGS_DRY_RUN
-#define MAKEARGS_CALL(...)
-#else
-#define MAKEARGS_CALL(target) target()
+/// how the targets will be called
+#ifndef MAKEARGS_TARGET_CALL
+#define MAKEARGS_TARGET_CALL(target) \
+	LOG_MSG("%s()\n", argv[i]);        \
+	target();
 #endif
 
 #ifndef MAKEARGS_STRLEN
@@ -256,8 +256,7 @@ static int makeargs_run_targets(const int argc, const char** argv)
 #define MAKEARGS_TARGET(target, ...)               \
 	else if (MAKEARGS_STRCMP(argv[i], #target) == 0) \
 	{                                                \
-		LOG_MSG("%s()\n", argv[i]);                    \
-		MAKEARGS_CALL(target);                         \
+		MAKEARGS_TARGET_CALL(target);                  \
 		i++;                                           \
 	}
 

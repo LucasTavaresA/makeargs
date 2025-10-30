@@ -6,7 +6,7 @@ FILE* out;
 #define LOG_STDOUT out
 #include "../log.c"
 
-#define MAKEARGS_DRY_RUN
+#define MAKEARGS_TARGET_CALL(target) LOG_MSG(#target "()\n");
 #define MAKEARGS_TARGETS \
 	MAKEARGS_TARGET(build) \
 	MAKEARGS_TARGET(run)
