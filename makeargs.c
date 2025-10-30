@@ -58,29 +58,29 @@ static int makeargs_run_targets(const int argc, const char** argv);
 
 /// when set, targets will be printed without being called
 #ifdef MAKEARGS_DRY_RUN
-#define MAKEARGS_CALL(target)
+#define MAKEARGS_CALL(...)
 #else
 #define MAKEARGS_CALL(target) target()
 #endif
 
 #ifndef MAKEARGS_STRLEN
-#define MAKEARGS_STRLEN(s) strlen(s)
+#define MAKEARGS_STRLEN strlen
 #endif
 
 #ifndef MAKEARGS_STRCMP
-#define MAKEARGS_STRCMP(s1, s2) strcmp(s1, s2)
+#define MAKEARGS_STRCMP strcmp
 #endif
 
 #ifndef MAKEARGS_STRCHR
-#define MAKEARGS_STRCHR(s, c) strchr(s, c)
+#define MAKEARGS_STRCHR strchr
 #endif
 
 #ifndef MAKEARGS_STRCPY
-#define MAKEARGS_STRCPY(s1, s2) strcpy(s1, s2)
+#define MAKEARGS_STRCPY strcpy
 #endif
 
 #ifndef MAKEARGS_STRNCPY
-#define MAKEARGS_STRNCPY(s1, s2, n) strncpy(s1, s2, n)
+#define MAKEARGS_STRNCPY strncpy
 #endif
 
 #ifndef MAKEARGS_ENVIRON

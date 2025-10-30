@@ -14,15 +14,15 @@
 #endif
 
 #ifndef LOG_FPRINTF
-#define LOG_FPRINTF(out, format, ...) fprintf(out, format, ##__VA_ARGS__);
+#define LOG_FPRINTF fprintf
 #endif
 
 #ifndef LOG_EXIT
-#define LOG_EXIT(status) exit(status);
+#define LOG_EXIT exit
 #endif
 
 #ifndef LOG_MSG
-#define LOG_MSG(format, ...) fprintf(LOG_STDOUT, format, ##__VA_ARGS__);
+#define LOG_MSG(format, ...) LOG_FPRINTF(LOG_STDOUT, format, ##__VA_ARGS__);
 #endif
 
 #define LOG_HALT(status, format, ...)                  \
