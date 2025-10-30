@@ -7,10 +7,6 @@ FILE* out;
 #include "../log.c"
 
 #define MAKEARGS_TARGET_CALL(target) LOG_MSG(#target "()\n");
-#define MAKEARGS_TARGETS \
-	MAKEARGS_TARGET(build) \
-	MAKEARGS_TARGET(run)
-
 #define MAKEARGS_IMPLEMENTATION
 #include "../makeargs.c"
 

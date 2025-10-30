@@ -53,7 +53,7 @@ static int makeargs_run_targets(const int argc, const char** argv);
 // an X macro list of all your targets, each target is defined like this:
 // MAKEARGS_TARGET(name, description)
 #ifndef MAKEARGS_TARGETS
-#error "MAKEARGS_TARGETS must be defined"
+#define MAKEARGS_TARGETS
 #endif
 
 /// how the targets will be called
