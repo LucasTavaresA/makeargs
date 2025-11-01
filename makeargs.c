@@ -264,7 +264,8 @@ static int makeargs_run_targets(const int argc, const char** argv)
 #undef MAKEARGS_TARGET
 		else
 		{
-			LOG_FPRINTF(LOG_STDERR, "%s:%d: Unknown target %s()\n", __FILE__, __LINE__, argv[i]);
+			LOG_FPRINTF(LOG_STDERR, "%s:%d: Unknown target %s()\n", __FILE__,
+									__LINE__, argv[i]);
 			MAKEARGS_DEFAULT_TARGET(argv[0]);
 			LOG_EXIT(1);
 		}

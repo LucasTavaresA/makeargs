@@ -8,6 +8,9 @@ FILE* out;
 
 #define MAKEARGS_TARGET_CALL(target) LOG_MSG(#target "()\n");
 #define MAKEARGS_IMPLEMENTATION
+#define MAKEARGS_TARGETS \
+	MAKEARGS_TARGET(build) \
+	MAKEARGS_TARGET(run)
 #include "../makeargs.c"
 
 #define SEPARATOR \
