@@ -25,14 +25,24 @@
 #define LOG_MSG(format, ...) LOG_FPRINTF(LOG_STDOUT, format, ##__VA_ARGS__);
 #endif
 
-#define LOG_HALT(status, format, ...)                  \
-	LOG_FPRINTF(LOG_STDERR, format "\n", ##__VA_ARGS__); \
-	LOG_EXIT(status);
+#ifndef LOG_HALT
+#define LOG_HALT(status, format, ...)                    \
+	do                                                     \
+	{                                                      \
+		LOG_FPRINTF(LOG_STDERR, format "\n", ##__VA_ARGS__); \
+		LOG_EXIT(status);                                    \
+	} while (0)
+#endif
 
-#define LOG_ASSERT(cond, format, ...)                \
-	if (!(cond))                                       \
-	{                                                  \
-		LOG_HALT(LOG_ERROR_CODE, format, ##__VA_ARGS__); \
-	}
+#ifndef LOG_ASSERT
+#define LOG_ASSERT(cond, format, ...)                  \
+	do                                                   \
+	{                                                    \
+		if (!(cond))                                       \
+		{                                                  \
+			LOG_HALT(LOG_ERROR_CODE, format, ##__VA_ARGS__); \
+		}                                                  \
+	} while (0)
+#endif
 
 #endif	// LOG_C
