@@ -1,10 +1,4 @@
-// makeargs.c does not include anything by itself, so it needs these includes
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-// log.c is a bunch of simple logging macros, it uses stdio.h
-#include "log.c"
-// includes usefull definitions, but no implementations yet
+// includes definitions, but no implementations yet
 #include "makeargs.c"
 
 // to avoid executing arbitrary c functions, your targets are defined at compile time:

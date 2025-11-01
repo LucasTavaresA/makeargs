@@ -1,3 +1,10 @@
+#ifndef MAKEARGS_FREESTANDING
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "log.c"
+#endif
+
 /// prints the help message.
 /// generated based on your MAKEARGS_TARGETS.
 static inline void makeargs_help(const char* argv0);
