@@ -1,8 +1,8 @@
 #ifndef MAKEARGS_FREESTANDING
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "log.c"
+#	include <stdio.h>
+#	include <stdlib.h>
+#	include <string.h>
+#	include "log.c"
 #endif
 
 /// prints the help message.
@@ -47,68 +47,68 @@ static int makeargs_run_targets(const int argc, const char** argv);
 
 #ifdef MAKEARGS_IMPLEMENTATION
 /// makeargs will stop parsing at this separator
-#ifndef MAKEARGS_SEPARATOR
-#define MAKEARGS_SEPARATOR "--"
-#endif
+#	ifndef MAKEARGS_SEPARATOR
+#		define MAKEARGS_SEPARATOR "--"
+#	endif
 
 /// function to call when no target is specified or when a unknown target is specified
 /// by default prints a message based on your MAKEARGS_TARGETS
-#ifndef MAKEARGS_DEFAULT_TARGET
-#define MAKEARGS_DEFAULT_TARGET makeargs_help
-#endif
+#	ifndef MAKEARGS_DEFAULT_TARGET
+#		define MAKEARGS_DEFAULT_TARGET makeargs_help
+#	endif
 
 // an X macro list of all your targets, each target is defined like this:
 // MAKEARGS_TARGET(name, description)
-#ifndef MAKEARGS_TARGETS
-#define MAKEARGS_TARGETS
-#endif
+#	ifndef MAKEARGS_TARGETS
+#		define MAKEARGS_TARGETS
+#	endif
 
 /// how the targets will be called
-#ifndef MAKEARGS_TARGET_CALL
-#define MAKEARGS_TARGET_CALL(target) \
-	LOG_MSG("%s()\n", argv[i]);        \
-	target();
-#endif
+#	ifndef MAKEARGS_TARGET_CALL
+#		define MAKEARGS_TARGET_CALL(target) \
+			LOG_MSG("%s()\n", argv[i]);        \
+			target();
+#	endif
 
-#ifndef MAKEARGS_STRLEN
-#define MAKEARGS_STRLEN strlen
-#endif
+#	ifndef MAKEARGS_STRLEN
+#		define MAKEARGS_STRLEN strlen
+#	endif
 
-#ifndef MAKEARGS_STRCMP
-#define MAKEARGS_STRCMP strcmp
-#endif
+#	ifndef MAKEARGS_STRCMP
+#		define MAKEARGS_STRCMP strcmp
+#	endif
 
-#ifndef MAKEARGS_STRCHR
-#define MAKEARGS_STRCHR strchr
-#endif
+#	ifndef MAKEARGS_STRCHR
+#		define MAKEARGS_STRCHR strchr
+#	endif
 
-#ifndef MAKEARGS_STRCPY
-#define MAKEARGS_STRCPY strcpy
-#endif
+#	ifndef MAKEARGS_STRCPY
+#		define MAKEARGS_STRCPY strcpy
+#	endif
 
-#ifndef MAKEARGS_STRNCPY
-#define MAKEARGS_STRNCPY strncpy
-#endif
+#	ifndef MAKEARGS_STRNCPY
+#		define MAKEARGS_STRNCPY strncpy
+#	endif
 
-#ifndef MAKEARGS_ENVIRON
-#ifdef _WIN32
+#	ifndef MAKEARGS_ENVIRON
+#		ifdef _WIN32
 extern char** _environ;
-#define MAKEARGS_ENVIRON _environ
-#else
+#			define MAKEARGS_ENVIRON _environ
+#		else
 extern char** environ;
-#define MAKEARGS_ENVIRON environ
-#endif
-#endif
+#			define MAKEARGS_ENVIRON environ
+#		endif
+#	endif
 
 /// maximum number of variables that can be set
-#ifndef MAKEARGS_MAX_VARS
-#define MAKEARGS_MAX_VARS 256
-#endif
+#	ifndef MAKEARGS_MAX_VARS
+#		define MAKEARGS_MAX_VARS 256
+#	endif
 
 /// maximum length of a variable name or value
-#ifndef MAKEARGS_VAR_LENGTH
-#define MAKEARGS_VAR_LENGTH 1024
-#endif
+#	ifndef MAKEARGS_VAR_LENGTH
+#		define MAKEARGS_VAR_LENGTH 1024
+#	endif
 
 static struct
 {
@@ -124,17 +124,17 @@ static inline void makeargs_help(const char* argv0)
 {
 	LOG_MSG("Usage: %s [", argv0);
 	const char* sep = "";
-#define MAKEARGS_TARGET(target, ...) \
-	LOG_MSG("%s" #target, sep);        \
-	sep = "|";
+#	define MAKEARGS_TARGET(target, ...) \
+		LOG_MSG("%s" #target, sep);        \
+		sep = "|";
 	MAKEARGS_TARGETS
-#undef MAKEARGS_TARGET
+#	undef MAKEARGS_TARGET
 	LOG_MSG("]\n");
 
-#define MAKEARGS_TARGET(target, ...) \
-	LOG_MSG("  " #target " \t " __VA_ARGS__ "\n");
+#	define MAKEARGS_TARGET(target, ...) \
+		LOG_MSG("  " #target " \t " __VA_ARGS__ "\n");
 	MAKEARGS_TARGETS
-#undef MAKEARGS_TARGET
+#	undef MAKEARGS_TARGET
 }
 
 static char* makeargs_get(const char* name)
@@ -166,7 +166,7 @@ static void makeargs_append(const char* name, const char* suffix)
 
 static void makeargs_set(const char* name, const char* value)
 {
-#define MAKEARGS_VAR_FMTSTRING "name = \"%s\"\nvalue = \"%s\"\n"
+#	define MAKEARGS_VAR_FMTSTRING "name = \"%s\"\nvalue = \"%s\"\n"
 	LOG_ASSERT(makeargs_vars_count < MAKEARGS_MAX_VARS,
 						 "makeargs: too many variables, increase MAKEARGS_MAX_VARS!");
 	LOG_ASSERT(
@@ -179,7 +179,7 @@ static void makeargs_set(const char* name, const char* value)
 			MAKEARGS_VAR_FMTSTRING
 			"makeargs_set(): variable value too long, increase MAKEARGS_VAR_LENGTH!",
 			name, value);
-#undef MAKEARGS_VAR_FMTSTRING
+#	undef MAKEARGS_VAR_FMTSTRING
 
 	for (int i = 0; i < makeargs_vars_count; i++)
 	{
@@ -260,15 +260,15 @@ static int makeargs_run_targets(const int argc, const char** argv)
 		{
 			return i + 1;
 		}
-#define MAKEARGS_TARGET(target, ...)               \
-	else if (MAKEARGS_STRCMP(argv[i], #target) == 0) \
-	{                                                \
-		MAKEARGS_TARGET_CALL(target);                  \
-		i++;                                           \
-	}
+#	define MAKEARGS_TARGET(target, ...)               \
+		else if (MAKEARGS_STRCMP(argv[i], #target) == 0) \
+		{                                                \
+			MAKEARGS_TARGET_CALL(target);                  \
+			i++;                                           \
+		}
 
 		MAKEARGS_TARGETS
-#undef MAKEARGS_TARGET
+#	undef MAKEARGS_TARGET
 		else
 		{
 			LOG_FPRINTF(LOG_STDERR, "%s:%d: Unknown target %s()\n", __FILE__,

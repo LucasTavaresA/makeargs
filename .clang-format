@@ -9,6 +9,8 @@ BreakBeforeBraces: Allman
 BreakStringLiterals: false
 ReflowComments: false
 ColumnLimit: 80
+IndentPPDirectives: AfterHash
+PPIndentWidth: 2
 BraceWrapping:
   AfterFunction: true
   AfterEnum: true

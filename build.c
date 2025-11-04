@@ -12,7 +12,7 @@
 // these explain themselves
 void format()
 {
-	system("clang-format -i *.c");
+	system("clang-format -i ./**/*.c");
 }
 
 void clean()
@@ -31,9 +31,10 @@ void build()
 	char* cflags = makeargs_get("CFLAGS");
 	char* warnings = makeargs_get("WARNINGS");
 	char* out = makeargs_get("OUT");
+	char* cc = makeargs_get("CC");
 
 	char cmd[1024];
-	snprintf(cmd, sizeof(cmd), "gcc %s %s -o %s main.c", cflags, warnings, out);
+	snprintf(cmd, sizeof(cmd), "%s %s %s -o %s main.c", cc, cflags, warnings, out);
 	system(cmd);
 }
 
@@ -56,9 +57,10 @@ int main(const int argc, const char** argv)
 	/// the order used below matches makefile behaviour
 
 	// for overridable values, just use makeargs_set() before everything:
-	makeargs_set("OUT", "program");
+	makeargs_set("OUT", "main");
 	makeargs_set("WARNINGS", "-Wall -Wextra -pedantic");
 	makeargs_set("CFLAGS", "-std=c99 -O3 -static");
+	makeargs_set("CC", "cc");
 
 	// gets all the environment variables, and sets them with makeargs_set()
 	makeargs_getenv();
