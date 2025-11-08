@@ -1,18 +1,20 @@
 // includes definitions, but no implementations yet
 #include "makeargs.c"
 
-// to avoid executing arbitrary c functions, your targets are defined at compile time:
-// MAKEARGS_TARGET(name, description)
+// targets are defined at compile time
+// name is required, the rest is optional, you can have 10 dependencies
+// when calling a target needs a dependency, makeargs calls what produces that output
+// MAKEARGS_TARGET(name, description, output, dependencies...)
 #define MAKEARGS_TARGETS                                          \
-	MAKEARGS_TARGET(build)                                          \
-	MAKEARGS_TARGET(run)                                            \
+	MAKEARGS_TARGET(build, "", "main", "main.c", "utils.c")         \
+	MAKEARGS_TARGET(run, "", "", "main")                            \
 	MAKEARGS_TARGET(format, "format all c files with clang-format") \
 	MAKEARGS_TARGET(clean, "remove all the build files")
 
 // these explain themselves
 void format()
 {
-	system("clang-format -i ./**/*.c");
+	system("clang-format -i ./*.c ./tests/*.c");
 }
 
 void clean()

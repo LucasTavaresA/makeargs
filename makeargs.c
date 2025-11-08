@@ -2,7 +2,21 @@
 #	include <stdio.h>
 #	include <stdlib.h>
 #	include <string.h>
+#	include <errno.h>
+#	include <sys/stat.h>
+#	include <sys/types.h>
+
+#	ifdef _WIN32
+#		include <io.h>
+#		define STAT_STRUCT _stat
+#		define STAT_FUNC _stat
+#	else
+#		define STAT_STRUCT stat
+#		define STAT_FUNC stat
+#	endif
+
 #	include "log.c"
+#	include "span/span.c"
 #endif
 
 /// prints the help message.
@@ -33,6 +47,11 @@ static void makeargs_set_from_var(const char* var);
 /// halts if the variable name or value is too long.
 static void makeargs_getenv(void);
 
+/// returns true if the output is newer than the dependencies.
+/// returns true if the output is "" or the file doesnt exist.
+/// halts on unexpected stat() fails.
+static bool makeargs_needs_rebuild(char* output, string_span deps);
+
 /// sets all the variables based on the command line arguments.
 /// halts if you have too many variables.
 /// halts if the variable name or value is too long.
@@ -57,13 +76,15 @@ static int makeargs_run_targets(const int argc, const char** argv);
 #		define MAKEARGS_DEFAULT_TARGET makeargs_help
 #	endif
 
-// an X macro list of all your targets, each target is defined like this:
-// MAKEARGS_TARGET(name, description)
+// an X macro list of all your targets
+// name is required, the rest is optional, you can have 10 dependencies
+// MAKEARGS_TARGET(name, description, output, dependencies...)
 #	ifndef MAKEARGS_TARGETS
 #		define MAKEARGS_TARGETS
 #	endif
 
 #	define MAKEARGS_FIRST(x, ...) x
+#	define MAKEARGS_REST(x, ...) __VA_ARGS__
 
 /// how the targets will be called
 #	ifndef MAKEARGS_TARGET_CALL
@@ -133,8 +154,11 @@ static inline void makeargs_help(const char* argv0)
 #	undef MAKEARGS_TARGET
 	LOG_MSG("]\n");
 
-#	define MAKEARGS_TARGET(target, ...) \
-		LOG_MSG("  " #target __VA_OPT__(" \t\t") MAKEARGS_FIRST(__VA_ARGS__) "\n")
+#	define MAKEARGS_TARGET(target, ...)                        \
+		LOG_MSG("  " #target "%s%s\n",                            \
+						MAKEARGS_FIRST(__VA_ARGS__) ""[0] ? " \t\t" : "", \
+						MAKEARGS_FIRST(__VA_ARGS__) "")
+
 	MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
 }
@@ -219,6 +243,92 @@ static void makeargs_getenv(void)
 	}
 }
 
+static void _makeargs_build_deps(string_span deps)
+{
+	static const char* _makeargs_stack[256];
+	static int _makeargs_depth = 0;
+#	define MAKEARGS_TARGET(target, ...) static bool _first_##target = false;
+	MAKEARGS_TARGETS
+#	undef MAKEARGS_TARGET
+
+	for (size_t i = 0; i < deps.size; ++i)
+	{
+#	define MAKEARGS_OUTPUTS(target, description, ...)                         \
+		__VA_OPT__(else if (MAKEARGS_FIRST(__VA_ARGS__)[0] != '\0' &&            \
+												MAKEARGS_STRCMP(deps.data[i],                        \
+																				MAKEARGS_FIRST(__VA_ARGS__)) == 0) { \
+			if (makeargs_needs_rebuild(MAKEARGS_FIRST(__VA_ARGS__),                \
+																 STRING_SPAN(MAKEARGS_REST(__VA_ARGS__))))   \
+			{                                                                      \
+				if (_first_##target)                                                 \
+				{                                                                    \
+					LOG_FPRINTF(LOG_STDERR,                                            \
+											"%s:%d: Attempt to build circular dependency!\n",      \
+											__FILE__, __LINE__);                                   \
+					for (int j = 0; j < _makeargs_depth; j++)                          \
+						LOG_FPRINTF(LOG_STDERR, "%s -> ", _makeargs_stack[j]);           \
+					LOG_HALT(LOG_ERROR_CODE, "%s", MAKEARGS_FIRST(__VA_ARGS__));       \
+				}                                                                    \
+                                                                             \
+				_first_##target = true;                                              \
+				_makeargs_stack[_makeargs_depth++] = MAKEARGS_FIRST(__VA_ARGS__);    \
+				_makeargs_build_deps(STRING_SPAN(MAKEARGS_REST(__VA_ARGS__)));       \
+				MAKEARGS_TARGET_CALL(target)                                         \
+				_makeargs_depth--;                                                   \
+				_first_##target = false;                                             \
+			}                                                                      \
+		})
+
+#	define MAKEARGS_TARGET(target, ...) \
+		__VA_OPT__(MAKEARGS_OUTPUTS(target, __VA_ARGS__))
+
+		if (0)
+		{
+		}
+		MAKEARGS_TARGETS
+#	undef MAKEARGS_TARGET
+#	undef MAKEARGS_OUTPUTS
+	}
+}
+
+static bool makeargs_needs_rebuild(char* output, string_span deps)
+{
+	struct STAT_STRUCT st = {0};
+
+	if (STAT_FUNC(output, &st) < 0)
+	{
+		if (errno == ENOENT)
+		{
+			// theres no output, empty "" or file doesnt exist
+			return true;
+		}
+
+		LOG_HALT(LOG_ERROR_CODE, "could not stat(%s): %s!", output,
+						 strerror(errno));
+	}
+
+	time_t output_time = st.st_mtime;
+
+	for (size_t i = 0; i < deps.size; ++i)
+	{
+		if (STAT_FUNC(deps.data[i], &st) < 0)
+		{
+			LOG_HALT(LOG_ERROR_CODE, "could not stat(%s): %s!", deps.data[i],
+							 strerror(errno));
+		}
+
+		time_t dep_time = st.st_mtime;
+
+		if (dep_time > output_time)
+		{
+			// a dependency is newer than the output
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static int makeargs_set_vars(const int argc, const char** argv)
 {
 	int i = 1;
@@ -262,15 +372,36 @@ static int makeargs_run_targets(const int argc, const char** argv)
 		{
 			return i + 1;
 		}
-#	define MAKEARGS_TARGET(target, ...)               \
-		else if (MAKEARGS_STRCMP(argv[i], #target) == 0) \
-		{                                                \
-			MAKEARGS_TARGET_CALL(target);                  \
-			i++;                                           \
+#	define MAKEARGS_NO_REBUILD(target, ...) MAKEARGS_TARGET_CALL(target)
+
+#	define MAKEARGS_HAS_REBUILD(target, desc, output, ...) \
+		string_span deps = STRING_SPAN(__VA_ARGS__);          \
+		_makeargs_build_deps(deps);                           \
+                                                          \
+		if (makeargs_needs_rebuild(output, deps))             \
+		{                                                     \
+			MAKEARGS_TARGET_CALL(target)                        \
+		}
+
+#	define MAKEARGS_DISPATCH_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, \
+																 _12, N, ...)                                  \
+		MAKEARGS_##N##_REBUILD
+#	define MAKEARGS_DISPATCH(...)                                           \
+		MAKEARGS_DISPATCH_IMPL(__VA_ARGS__, HAS, HAS, HAS, HAS, HAS, HAS, HAS, \
+													 HAS, HAS, HAS, NO, NO)
+
+#	define MAKEARGS_TARGET(target, ...)                         \
+		else if (MAKEARGS_STRCMP(argv[i], #target) == 0)           \
+		{                                                          \
+			MAKEARGS_DISPATCH(__VA_ARGS__)(target, __VA_ARGS__) i++; \
 		}
 
 		MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
+#	undef MAKEARGS_DISPATCH
+#	undef MAKEARGS_DISPATCH_IMPL
+#	undef MAKEARGS_HAS_REBUILD
+#	undef MAKEARGS_NO_REBUILD
 		else
 		{
 			LOG_FPRINTF(LOG_STDERR, "%s:%d: Unknown target %s()\n", __FILE__,

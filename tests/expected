@@ -1,7 +1,10 @@
 ./test 
-Usage: ./test [build|run]
-  build
-  run
+Usage: ./test [empty|desc|nodesc|build|run]
+  empty
+  desc 		has a description
+  nodesc
+  build 		builds main
+  run 		calls build
 1 <- makeargs_run_targets()
 1 <- makeargs_set_vars()
 --------------------------------------------------------------------------------
@@ -11,6 +14,7 @@ build()
 2 <- makeargs_set_vars()
 --------------------------------------------------------------------------------
 ./test build run 
+build()
 build()
 run()
 3 <- makeargs_run_targets()
@@ -26,6 +30,7 @@ build()
 3 <- makeargs_set_vars()
 --------------------------------------------------------------------------------
 ./test run build -- 
+build()
 run()
 build()
 4 <- makeargs_run_targets()
@@ -42,6 +47,7 @@ build()
 --------------------------------------------------------------------------------
 ./test build run -- -s 
 build()
+build()
 run()
 4 <- makeargs_run_targets()
 4 <- makeargs_set_vars()
@@ -56,6 +62,7 @@ build()
 3 <- makeargs_set_vars()
 --------------------------------------------------------------------------------
 ./test run build -- -s --test 
+build()
 run()
 build()
 4 <- makeargs_run_targets()
@@ -67,6 +74,7 @@ build()
 CONTAINER="docker"
 --------------------------------------------------------------------------------
 ./test run CONTAINER=docker build 
+build()
 run()
 build()
 4 <- makeargs_run_targets()
@@ -79,6 +87,7 @@ CONTAINER="docker"
 CONTAINER=""
 --------------------------------------------------------------------------------
 ./test run CONTAINER= build 
+build()
 run()
 build()
 4 <- makeargs_run_targets()
