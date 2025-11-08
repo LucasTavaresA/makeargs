@@ -31,7 +31,7 @@ static void makeargs_set_from_var(const char* var);
 /// sets all the variables based on the environment variables.
 /// halts if you have too many variables.
 /// halts if the variable name or value is too long.
-static void makeargs_getenv();
+static void makeargs_getenv(void);
 
 /// sets all the variables based on the command line arguments.
 /// halts if you have too many variables.
@@ -63,10 +63,12 @@ static int makeargs_run_targets(const int argc, const char** argv);
 #		define MAKEARGS_TARGETS
 #	endif
 
+#	define MAKEARGS_FIRST(x, ...) x
+
 /// how the targets will be called
 #	ifndef MAKEARGS_TARGET_CALL
 #		define MAKEARGS_TARGET_CALL(target) \
-			LOG_MSG("%s()\n", argv[i]);        \
+			LOG_MSG("%s()\n", #target)         \
 			target();
 #	endif
 
@@ -125,14 +127,14 @@ static inline void makeargs_help(const char* argv0)
 	LOG_MSG("Usage: %s [", argv0);
 	const char* sep = "";
 #	define MAKEARGS_TARGET(target, ...) \
-		LOG_MSG("%s" #target, sep);        \
+		LOG_MSG("%s" #target, sep)         \
 		sep = "|";
 	MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
 	LOG_MSG("]\n");
 
 #	define MAKEARGS_TARGET(target, ...) \
-		LOG_MSG("  " #target " \t " __VA_ARGS__ "\n");
+		LOG_MSG("  " #target __VA_OPT__(" \t\t") MAKEARGS_FIRST(__VA_ARGS__) "\n")
 	MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
 }
@@ -209,7 +211,7 @@ static void makeargs_set_from_var(const char* var)
 	}
 }
 
-static void makeargs_getenv()
+static void makeargs_getenv(void)
 {
 	for (char** env = MAKEARGS_ENVIRON; *env != NULL; env++)
 	{

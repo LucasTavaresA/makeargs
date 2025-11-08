@@ -34,7 +34,8 @@ void build()
 	char* cc = makeargs_get("CC");
 
 	char cmd[1024];
-	snprintf(cmd, sizeof(cmd), "%s %s %s -o %s main.c", cc, cflags, warnings, out);
+	snprintf(cmd, sizeof(cmd), "%s %s %s -o %s main.c", cc, cflags, warnings,
+					 out);
 	system(cmd);
 }
 

@@ -1,7 +1,7 @@
 ./test 
 Usage: ./test [build|run]
-  build 	 
-  run 	 
+  build
+  run
 1 <- makeargs_run_targets()
 1 <- makeargs_set_vars()
 --------------------------------------------------------------------------------
