@@ -22,7 +22,7 @@
 #endif
 
 #ifndef LOG_MSG
-#	define LOG_MSG(format, ...) LOG_FPRINTF(LOG_STDOUT, format, ##__VA_ARGS__);
+#	define LOG_MSG(format, ...) LOG_FPRINTF(LOG_STDOUT, format, ##__VA_ARGS__)
 #endif
 
 #ifndef LOG_HALT

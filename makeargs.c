@@ -76,9 +76,9 @@ static int makeargs_run_targets(const int argc, const char** argv);
 #		define MAKEARGS_DEFAULT_TARGET makeargs_help
 #	endif
 
-// an X macro list of all your targets
-// name is required, the rest is optional, you can have 10 dependencies
-// MAKEARGS_TARGET(name, description, output, dependencies...)
+/// an X macro list of all your targets
+/// name is required, the rest is optional, you can have 10 dependencies
+/// MAKEARGS_TARGET(name, description, output, dependencies...)
 #	ifndef MAKEARGS_TARGETS
 #		define MAKEARGS_TARGETS
 #	endif
@@ -89,7 +89,7 @@ static int makeargs_run_targets(const int argc, const char** argv);
 /// how the targets will be called
 #	ifndef MAKEARGS_TARGET_CALL
 #		define MAKEARGS_TARGET_CALL(target) \
-			LOG_MSG("%s()\n", #target)         \
+			LOG_MSG("%s()\n", #target);        \
 			target();
 #	endif
 
@@ -148,7 +148,7 @@ static inline void makeargs_help(const char* argv0)
 	LOG_MSG("Usage: %s [", argv0);
 	const char* sep = "";
 #	define MAKEARGS_TARGET(target, ...) \
-		LOG_MSG("%s" #target, sep)         \
+		LOG_MSG("%s" #target, sep);        \
 		sep = "|";
 	MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
@@ -157,7 +157,7 @@ static inline void makeargs_help(const char* argv0)
 #	define MAKEARGS_TARGET(target, ...)                        \
 		LOG_MSG("  " #target "%s%s\n",                            \
 						MAKEARGS_FIRST(__VA_ARGS__) ""[0] ? " \t\t" : "", \
-						MAKEARGS_FIRST(__VA_ARGS__) "")
+						MAKEARGS_FIRST(__VA_ARGS__) "");
 
 	MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
