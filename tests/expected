@@ -5,6 +5,12 @@ Usage: ./test [empty|desc|nodesc|build|run]
   nodesc             
   build              builds main
   run                calls build
+
+Flags:
+  -n                  print without running anything
+  --dry-run           print without running anything
+  -B                  Unconditionally run targets
+  --always-run        Unconditionally run targets
 1 <- makeargs_run_targets()
 1 <- makeargs_set_vars()
 --------------------------------------------------------------------------------

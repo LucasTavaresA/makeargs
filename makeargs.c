@@ -52,6 +52,11 @@ static void makeargs_getenv(void);
 /// halts on unexpected stat() fails.
 static bool makeargs_needs_rebuild(char* output, string_span deps);
 
+/// sets custom and builtin flags to true based on the command line arguments.
+/// halts with DEFAULT_TARGET() if -h or --help is specified.
+/// returns the last index or the index after MAKEARGS_SEPARATOR.
+static int makeargs_set_flags(const int argc, const char** argv);
+
 /// sets all the variables based on the command line arguments.
 /// halts if you have too many variables.
 /// halts if the variable name or value is too long.
@@ -83,6 +88,26 @@ static int makeargs_run_targets(const int argc, const char** argv);
 #		define MAKEARGS_TARGETS
 #	endif
 
+/// an X macro list of flags
+/// the variables are always booleans, for passing other values use variables instead
+/// MAKEARGS_FLAG(value, description, flag)
+#	ifndef MAKEARGS_FLAGS
+#		define MAKEARGS_FLAGS                                                     \
+			MAKEARGS_FLAG(_makeargs_dry_run, "print without running anything", "-n") \
+			MAKEARGS_FLAG(_makeargs_dry_run, "print without running anything",       \
+										"--dry-run")                                               \
+			MAKEARGS_FLAG(_makeargs_always_run, "Unconditionally run targets", "-B") \
+			MAKEARGS_FLAG(_makeargs_always_run, "Unconditionally run targets",       \
+										"--always-run")
+#	endif
+
+/// an X macro list of flags
+/// the variables are always booleans, for passing other values use variables instead
+/// MAKEARGS_FLAG(value, description, flag)
+#	ifndef MAKEARGS_CUSTOM_FLAGS
+#		define MAKEARGS_CUSTOM_FLAGS
+#	endif
+
 #	define MAKEARGS_FIRST(x, ...) x
 #	define MAKEARGS_REST(x, ...) __VA_ARGS__
 
@@ -90,10 +115,14 @@ static int makeargs_run_targets(const int argc, const char** argv);
 #	ifndef MAKEARGS_TARGET_CALL
 #		define MAKEARGS_TARGET_CALL(target) \
 			LOG_MSG("%s()\n", #target);        \
-			target();
+			if (!_makeargs_dry_run)            \
+				target();
+#	endif
+
 #	ifndef MAKEARGS
 #		define MAKEARGS(argc, argv)      \
 			makeargs_getenv();              \
+			makeargs_set_flags(argc, argv); \
 			makeargs_set_vars(argc, argv);  \
 			makeargs_run_targets(argc, argv);
 #	endif
@@ -147,6 +176,8 @@ _Static_assert(sizeof(makeargs_vars) < 4 * 1024 * 1024,
 							 "makeargs_vars too large!");
 
 static int makeargs_vars_count = 0;
+static bool _makeargs_dry_run = false;
+static bool _makeargs_always_run = false;
 
 static inline void makeargs_help(const char* argv0)
 {
@@ -164,6 +195,14 @@ static inline void makeargs_help(const char* argv0)
 
 	MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
+
+	LOG_MSG("\nFlags:\n");
+#	define MAKEARGS_FLAG(_, description, flag) \
+		LOG_MSG("  %-18s  %s\n", flag, description);
+
+	MAKEARGS_FLAGS
+	MAKEARGS_CUSTOM_FLAGS
+#	undef MAKEARGS_FLAG
 }
 
 static char* makeargs_get(const char* name)
@@ -260,7 +299,8 @@ static void _makeargs_build_deps(string_span deps)
 		__VA_OPT__(else if (MAKEARGS_FIRST(__VA_ARGS__)[0] != '\0' &&            \
 												MAKEARGS_STRCMP(deps.data[i],                        \
 																				MAKEARGS_FIRST(__VA_ARGS__)) == 0) { \
-			if (makeargs_needs_rebuild(MAKEARGS_FIRST(__VA_ARGS__),                \
+			if (_makeargs_always_run ||                                            \
+					makeargs_needs_rebuild(MAKEARGS_FIRST(__VA_ARGS__),                \
 																 STRING_SPAN(MAKEARGS_REST(__VA_ARGS__))))   \
 			{                                                                      \
 				if (_first_##target)                                                 \
@@ -332,6 +372,37 @@ static bool makeargs_needs_rebuild(char* output, string_span deps)
 	return false;
 }
 
+static int makeargs_set_flags(const int argc, const char** argv)
+{
+	int i = 1;
+
+	while (i < argc)
+	{
+		if (MAKEARGS_STRCMP(argv[i], MAKEARGS_SEPARATOR) == 0)
+		{
+			return i + 1;
+		}
+		else if ((MAKEARGS_STRCMP(argv[i], "-h") == 0) ||
+						 (MAKEARGS_STRCMP(argv[i], "--help") == 0))
+		{
+			MAKEARGS_DEFAULT_TARGET(argv[0]);
+			LOG_EXIT(0);
+		}
+#	define MAKEARGS_FLAG(var, description, flag)   \
+		else if (MAKEARGS_STRCMP(argv[i], flag) == 0) \
+		{                                             \
+			var = true;                                 \
+		}
+
+		MAKEARGS_FLAGS
+		MAKEARGS_CUSTOM_FLAGS
+#	undef MAKEARGS_FLAG
+		i++;
+	}
+
+	return i;
+}
+
 static int makeargs_set_vars(const int argc, const char** argv)
 {
 	int i = 1;
@@ -339,6 +410,10 @@ static int makeargs_set_vars(const int argc, const char** argv)
 	while (i < argc)
 	{
 		if (MAKEARGS_STRCMP(argv[i], MAKEARGS_SEPARATOR) == 0)
+		{
+			return i + 1;
+		}
+		else if (argv[i][0] == '-')
 		{
 			return i + 1;
 		}
@@ -366,24 +441,24 @@ static int makeargs_run_targets(const int argc, const char** argv)
 	{
 		char* eq_pos = MAKEARGS_STRCHR(argv[i], '=');
 
-		if (eq_pos != NULL)
+		if (MAKEARGS_STRCMP(argv[i], MAKEARGS_SEPARATOR) == 0)
+		{
+			return i + 1;
+		}
+		else if (eq_pos != NULL || argv[i][0] == '-')
 		{
 			i++;
 			continue;
 		}
-		else if (MAKEARGS_STRCMP(argv[i], MAKEARGS_SEPARATOR) == 0)
-		{
-			return i + 1;
-		}
 #	define MAKEARGS_NO_REBUILD(target, ...) MAKEARGS_TARGET_CALL(target)
 
-#	define MAKEARGS_HAS_REBUILD(target, desc, output, ...) \
-		string_span deps = STRING_SPAN(__VA_ARGS__);          \
-		_makeargs_build_deps(deps);                           \
-                                                          \
-		if (makeargs_needs_rebuild(output, deps))             \
-		{                                                     \
-			MAKEARGS_TARGET_CALL(target)                        \
+#	define MAKEARGS_HAS_REBUILD(target, desc, output, ...)             \
+		string_span deps = STRING_SPAN(__VA_ARGS__);                      \
+		_makeargs_build_deps(deps);                                       \
+                                                                      \
+		if (_makeargs_always_run || makeargs_needs_rebuild(output, deps)) \
+		{                                                                 \
+			MAKEARGS_TARGET_CALL(target)                                    \
 		}
 
 #	define MAKEARGS_DISPATCH_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, \
