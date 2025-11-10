@@ -91,6 +91,11 @@ static int makeargs_run_targets(const int argc, const char** argv);
 #		define MAKEARGS_TARGET_CALL(target) \
 			LOG_MSG("%s()\n", #target);        \
 			target();
+#	ifndef MAKEARGS
+#		define MAKEARGS(argc, argv)      \
+			makeargs_getenv();              \
+			makeargs_set_vars(argc, argv);  \
+			makeargs_run_targets(argc, argv);
 #	endif
 
 #	ifndef MAKEARGS_STRLEN

@@ -56,20 +56,14 @@ void run()
 
 int main(const int argc, const char** argv)
 {
-	/// the order is important since all variables are set using makeargs_set()
-	/// the order used below matches makefile behaviour
-
 	// for overridable values, just use makeargs_set() before everything:
 	makeargs_set("OUT", "main");
 	makeargs_set("WARNINGS", "-Wall -Wextra -pedantic");
 	makeargs_set("CFLAGS", "-std=c99 -O3 -static");
 	makeargs_set("CC", "cc");
 
-	// gets all the environment variables, and sets them with makeargs_set()
-	makeargs_getenv();
-	// sets the variables passed from the command line
-	makeargs_set_vars(argc, argv);
-	// runs the targets passed from the command line
-	makeargs_run_targets(argc, argv);
+	// macro that replicates make behaviour by:
+	// setting all the variables and flags then runs the targets
+	MAKEARGS(argc, argv);
 	return 0;
 }
