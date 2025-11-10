@@ -1,10 +1,10 @@
 ./test 
 Usage: ./test [empty|desc|nodesc|build|run]
-  empty
-  desc 		has a description
-  nodesc
-  build 		builds main
-  run 		calls build
+  empty              
+  desc               has a description
+  nodesc             
+  build              builds main
+  run                calls build
 1 <- makeargs_run_targets()
 1 <- makeargs_set_vars()
 --------------------------------------------------------------------------------

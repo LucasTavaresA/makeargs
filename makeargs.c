@@ -154,10 +154,8 @@ static inline void makeargs_help(const char* argv0)
 #	undef MAKEARGS_TARGET
 	LOG_MSG("]\n");
 
-#	define MAKEARGS_TARGET(target, ...)                        \
-		LOG_MSG("  " #target "%s%s\n",                            \
-						MAKEARGS_FIRST(__VA_ARGS__) ""[0] ? " \t\t" : "", \
-						MAKEARGS_FIRST(__VA_ARGS__) "");
+#	define MAKEARGS_TARGET(target, ...) \
+		LOG_MSG("  %-18s %s\n", #target, MAKEARGS_FIRST(__VA_ARGS__) "");
 
 	MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
