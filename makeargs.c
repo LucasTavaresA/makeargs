@@ -315,6 +315,9 @@ static void _makeargs_build_deps(string_span deps)
 				}                                                                    \
                                                                              \
 				_first_##target = true;                                              \
+				LOG_ASSERT(                                                          \
+						_makeargs_depth < 256,                                           \
+						"dependency stack overflow - too many nested dependencies!");    \
 				_makeargs_stack[_makeargs_depth++] = MAKEARGS_FIRST(__VA_ARGS__);    \
 				_makeargs_build_deps(STRING_SPAN(MAKEARGS_REST(__VA_ARGS__)));       \
 				MAKEARGS_TARGET_CALL(target)                                         \
