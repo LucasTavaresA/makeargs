@@ -415,7 +415,8 @@ static int makeargs_set_vars(const int argc, const char** argv)
 		}
 		else if (argv[i][0] == '-')
 		{
-			return i + 1;
+			i++;
+			continue;
 		}
 		else
 		{
