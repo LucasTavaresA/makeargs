@@ -5,6 +5,7 @@
 #	include <errno.h>
 #	include <sys/stat.h>
 #	include <sys/types.h>
+#	include <time.h>
 
 #	ifdef _WIN32
 #		include <io.h>
@@ -362,7 +363,7 @@ static bool makeargs_needs_rebuild(char* output, string_span deps)
 
 		time_t dep_time = st.st_mtime;
 
-		if (dep_time > output_time)
+		if (difftime(dep_time, output_time) > 0)
 		{
 			// a dependency is newer than the output
 			return true;
