@@ -20,55 +20,59 @@
 #	include "span/span.c"
 #endif
 
+#ifndef MAKEARGS_DEF
+#	define MAKEARGS_DEF static inline
+#endif
+
 /// prints the help message.
 /// generated based on your MAKEARGS_TARGETS.
-static inline void makeargs_help(const char* argv0);
+MAKEARGS_DEF void makeargs_help(const char* argv0);
 
 /// returns the value of a variable.
 /// halts if the variable is not found.
-static char* makeargs_get(const char* name);
+MAKEARGS_DEF char* makeargs_get(const char* name);
 
 /// appends a to a variable.
 /// halts if the variable is not found.
 /// halts if the appended variable is too long.
-static void makeargs_append(const char* name, const char* suffix);
+MAKEARGS_DEF void makeargs_append(const char* name, const char* suffix);
 
 /// sets a variable.
 /// halts if you have too many variables.
 /// halts if the variable name or value is too long.
-static void makeargs_set(const char* name, const char* value);
+MAKEARGS_DEF void makeargs_set(const char* name, const char* value);
 
 /// sets a variable from a env variable, like "NAME=value".
 /// halts if you have too many variables.
 /// halts if the variable name or value is too long.
-static void makeargs_set_from_var(const char* var);
+MAKEARGS_DEF void makeargs_set_from_var(const char* var);
 
 /// sets all the variables based on the environment variables.
 /// halts if you have too many variables.
 /// halts if the variable name or value is too long.
-static void makeargs_getenv(void);
+MAKEARGS_DEF void makeargs_getenv(void);
 
 /// returns true if the output is newer than the dependencies.
 /// returns true if the output is "" or the file doesnt exist.
 /// halts on unexpected stat() fails.
-static bool makeargs_needs_rebuild(char* output, string_span deps);
+MAKEARGS_DEF bool makeargs_needs_rebuild(char* output, string_span deps);
 
 /// sets custom and builtin flags to true based on the command line arguments.
 /// halts with DEFAULT_TARGET() if -h or --help is specified.
 /// returns the last index or the index after MAKEARGS_SEPARATOR.
-static int makeargs_set_flags(const int argc, const char** argv);
+MAKEARGS_DEF int makeargs_set_flags(const int argc, const char** argv);
 
 /// sets all the variables based on the command line arguments.
 /// halts if you have too many variables.
 /// halts if the variable name or value is too long.
 /// returns the last index or the index after MAKEARGS_SEPARATOR.
-static int makeargs_set_vars(const int argc, const char** argv);
+MAKEARGS_DEF int makeargs_set_vars(const int argc, const char** argv);
 
 /// runs the targets based on the command line arguments.
 /// prints the help message if no target is specified.
 /// skips all arguments with '='.
 /// returns the last index or the index after MAKEARGS_SEPARATOR.
-static int makeargs_run_targets(const int argc, const char** argv);
+MAKEARGS_DEF int makeargs_run_targets(const int argc, const char** argv);
 
 #ifdef MAKEARGS_IMPLEMENTATION
 /// makeargs will stop parsing at this separator
@@ -180,7 +184,7 @@ static int makeargs_vars_count = 0;
 static bool _makeargs_dry_run = false;
 static bool _makeargs_always_run = false;
 
-static inline void makeargs_help(const char* argv0)
+MAKEARGS_DEF void makeargs_help(const char* argv0)
 {
 	LOG_MSG("Usage: %s [", argv0);
 	const char* sep = "";
@@ -206,7 +210,7 @@ static inline void makeargs_help(const char* argv0)
 #	undef MAKEARGS_FLAG
 }
 
-static char* makeargs_get(const char* name)
+MAKEARGS_DEF char* makeargs_get(const char* name)
 {
 	for (int i = 0; i < makeargs_vars_count; i++)
 	{
@@ -220,7 +224,7 @@ static char* makeargs_get(const char* name)
 					 __LINE__, name);
 }
 
-static void makeargs_append(const char* name, const char* suffix)
+MAKEARGS_DEF void makeargs_append(const char* name, const char* suffix)
 {
 	char* value = makeargs_get(name);
 	int value_len = MAKEARGS_STRLEN(value);
@@ -233,7 +237,7 @@ static void makeargs_append(const char* name, const char* suffix)
 	MAKEARGS_STRCPY(value + value_len, suffix);
 }
 
-static void makeargs_set(const char* name, const char* value)
+MAKEARGS_DEF void makeargs_set(const char* name, const char* value)
 {
 #	define MAKEARGS_VAR_FMTSTRING "name = \"%s\"\nvalue = \"%s\"\n"
 	LOG_ASSERT(makeargs_vars_count < MAKEARGS_MAX_VARS,
@@ -264,7 +268,7 @@ static void makeargs_set(const char* name, const char* value)
 	makeargs_vars_count++;
 }
 
-static void makeargs_set_from_var(const char* var)
+MAKEARGS_DEF void makeargs_set_from_var(const char* var)
 {
 	char* eq_pos = MAKEARGS_STRCHR(var, '=');
 
@@ -278,7 +282,7 @@ static void makeargs_set_from_var(const char* var)
 	}
 }
 
-static void makeargs_getenv(void)
+MAKEARGS_DEF void makeargs_getenv(void)
 {
 	for (char** env = MAKEARGS_ENVIRON; *env != NULL; env++)
 	{
@@ -286,7 +290,7 @@ static void makeargs_getenv(void)
 	}
 }
 
-static void _makeargs_build_deps(string_span deps)
+MAKEARGS_DEF void _makeargs_build_deps(string_span deps)
 {
 	static const char* _makeargs_stack[256];
 	static int _makeargs_depth = 0;
@@ -338,7 +342,7 @@ static void _makeargs_build_deps(string_span deps)
 	}
 }
 
-static bool makeargs_needs_rebuild(char* output, string_span deps)
+MAKEARGS_DEF bool makeargs_needs_rebuild(char* output, string_span deps)
 {
 	struct STAT_STRUCT st = {0};
 
@@ -376,7 +380,7 @@ static bool makeargs_needs_rebuild(char* output, string_span deps)
 	return false;
 }
 
-static int makeargs_set_flags(const int argc, const char** argv)
+MAKEARGS_DEF int makeargs_set_flags(const int argc, const char** argv)
 {
 	int i = 1;
 
@@ -407,7 +411,7 @@ static int makeargs_set_flags(const int argc, const char** argv)
 	return i;
 }
 
-static int makeargs_set_vars(const int argc, const char** argv)
+MAKEARGS_DEF int makeargs_set_vars(const int argc, const char** argv)
 {
 	int i = 1;
 
@@ -432,7 +436,7 @@ static int makeargs_set_vars(const int argc, const char** argv)
 	return i;
 }
 
-static int makeargs_run_targets(const int argc, const char** argv)
+MAKEARGS_DEF int makeargs_run_targets(const int argc, const char** argv)
 {
 	if (argc == 1)
 	{
