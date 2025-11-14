@@ -1,6 +1,7 @@
 #ifndef MAKEARGS_FREESTANDING
 #	include <stdio.h>
 #	include <stdlib.h>
+#	include <stdbool.h>
 #	include <string.h>
 #	include <errno.h>
 #	include <sys/stat.h>
@@ -60,19 +61,19 @@ MAKEARGS_DEF bool makeargs_needs_rebuild(char* output, string_span deps);
 /// sets custom and builtin flags to true based on the command line arguments.
 /// halts with DEFAULT_TARGET() if -h or --help is specified.
 /// returns the last index or the index after MAKEARGS_SEPARATOR.
-MAKEARGS_DEF int makeargs_set_flags(const int argc, const char** argv);
+MAKEARGS_DEF size_t makeargs_set_flags(const size_t argc, const char** argv);
 
 /// sets all the variables based on the command line arguments.
 /// halts if you have too many variables.
 /// halts if the variable name or value is too long.
 /// returns the last index or the index after MAKEARGS_SEPARATOR.
-MAKEARGS_DEF int makeargs_set_vars(const int argc, const char** argv);
+MAKEARGS_DEF size_t makeargs_set_vars(const size_t argc, const char** argv);
 
 /// runs the targets based on the command line arguments.
 /// prints the help message if no target is specified.
 /// skips all arguments with '='.
 /// returns the last index or the index after MAKEARGS_SEPARATOR.
-MAKEARGS_DEF int makeargs_run_targets(const int argc, const char** argv);
+MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv);
 
 #ifdef MAKEARGS_IMPLEMENTATION
 /// makeargs will stop parsing at this separator
@@ -98,11 +99,11 @@ MAKEARGS_DEF int makeargs_run_targets(const int argc, const char** argv);
 /// MAKEARGS_FLAG(value, description, flag)
 #	ifndef MAKEARGS_FLAGS
 #		define MAKEARGS_FLAGS                                                     \
-			MAKEARGS_FLAG(_makeargs_dry_run, "print without running anything", "-n") \
-			MAKEARGS_FLAG(_makeargs_dry_run, "print without running anything",       \
+			MAKEARGS_FLAG(makeargs_dry_run, "print without running anything", "-n") \
+			MAKEARGS_FLAG(makeargs_dry_run, "print without running anything",       \
 										"--dry-run")                                               \
-			MAKEARGS_FLAG(_makeargs_always_run, "Unconditionally run targets", "-B") \
-			MAKEARGS_FLAG(_makeargs_always_run, "Unconditionally run targets",       \
+			MAKEARGS_FLAG(makeargs_always_run, "Unconditionally run targets", "-B") \
+			MAKEARGS_FLAG(makeargs_always_run, "Unconditionally run targets",       \
 										"--always-run")
 #	endif
 
@@ -120,7 +121,7 @@ MAKEARGS_DEF int makeargs_run_targets(const int argc, const char** argv);
 #	ifndef MAKEARGS_TARGET_CALL
 #		define MAKEARGS_TARGET_CALL(target) \
 			LOG_MSG("%s()\n", #target);        \
-			if (!_makeargs_dry_run)            \
+			if (!makeargs_dry_run)             \
 				target();
 #	endif
 
@@ -180,9 +181,9 @@ static struct
 _Static_assert(sizeof(makeargs_vars) < 4 * 1024 * 1024,
 							 "makeargs_vars too large!");
 
-static int makeargs_vars_count = 0;
-static bool _makeargs_dry_run = false;
-static bool _makeargs_always_run = false;
+static size_t makeargs_vars_count = 0;
+static bool makeargs_dry_run = false;
+static bool makeargs_always_run = false;
 
 MAKEARGS_DEF void makeargs_help(const char* argv0)
 {
@@ -212,7 +213,7 @@ MAKEARGS_DEF void makeargs_help(const char* argv0)
 
 MAKEARGS_DEF char* makeargs_get(const char* name)
 {
-	for (int i = 0; i < makeargs_vars_count; i++)
+	for (size_t i = 0; i < makeargs_vars_count; i++)
 	{
 		if (MAKEARGS_STRCMP(makeargs_vars[i].name, name) == 0)
 		{
@@ -227,7 +228,7 @@ MAKEARGS_DEF char* makeargs_get(const char* name)
 MAKEARGS_DEF void makeargs_append(const char* name, const char* suffix)
 {
 	char* value = makeargs_get(name);
-	int value_len = MAKEARGS_STRLEN(value);
+	size_t value_len = MAKEARGS_STRLEN(value);
 
 	LOG_ASSERT(
 			value_len + MAKEARGS_STRLEN(suffix) < MAKEARGS_VAR_LENGTH,
@@ -254,7 +255,7 @@ MAKEARGS_DEF void makeargs_set(const char* name, const char* value)
 			name, value);
 #	undef MAKEARGS_VAR_FMTSTRING
 
-	for (int i = 0; i < makeargs_vars_count; i++)
+	for (size_t i = 0; i < makeargs_vars_count; i++)
 	{
 		if (MAKEARGS_STRCMP(makeargs_vars[i].name, name) == 0)
 		{
@@ -292,19 +293,20 @@ MAKEARGS_DEF void makeargs_getenv(void)
 
 MAKEARGS_DEF void _makeargs_build_deps(string_span deps)
 {
-	static const char* _makeargs_stack[256];
-	static int _makeargs_depth = 0;
+	static const char* makeargs_deps_stack[MAKEARGS_MAX_VARS];
+	static size_t makeargs_deps_depth = 0;
 #	define MAKEARGS_TARGET(target, ...) static bool _first_##target = false;
 	MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
 
 	for (size_t i = 0; i < deps.size; ++i)
 	{
+// NOTE(LucasTA): checked against '\0' to prevent "" output
 #	define MAKEARGS_OUTPUTS(target, description, ...)                         \
 		__VA_OPT__(else if (MAKEARGS_FIRST(__VA_ARGS__)[0] != '\0' &&            \
 												MAKEARGS_STRCMP(deps.data[i],                        \
 																				MAKEARGS_FIRST(__VA_ARGS__)) == 0) { \
-			if (_makeargs_always_run ||                                            \
+			if (makeargs_always_run ||                                             \
 					makeargs_needs_rebuild(MAKEARGS_FIRST(__VA_ARGS__),                \
 																 STRING_SPAN(MAKEARGS_REST(__VA_ARGS__))))   \
 			{                                                                      \
@@ -313,19 +315,20 @@ MAKEARGS_DEF void _makeargs_build_deps(string_span deps)
 					LOG_FPRINTF(LOG_STDERR,                                            \
 											"%s:%d: Attempt to build circular dependency!\n",      \
 											__FILE__, __LINE__);                                   \
-					for (int j = 0; j < _makeargs_depth; j++)                          \
-						LOG_FPRINTF(LOG_STDERR, "%s -> ", _makeargs_stack[j]);           \
+					for (size_t j = 0; j < makeargs_deps_depth; j++)                   \
+						LOG_FPRINTF(LOG_STDERR, "%s -> ", makeargs_deps_stack[j]);       \
 					LOG_HALT(LOG_ERROR_CODE, "%s", MAKEARGS_FIRST(__VA_ARGS__));       \
 				}                                                                    \
                                                                              \
 				_first_##target = true;                                              \
 				LOG_ASSERT(                                                          \
-						_makeargs_depth < 256,                                           \
+						makeargs_deps_depth < MAKEARGS_MAX_VARS,                         \
 						"dependency stack overflow - too many nested dependencies!");    \
-				_makeargs_stack[_makeargs_depth++] = MAKEARGS_FIRST(__VA_ARGS__);    \
+				makeargs_deps_stack[makeargs_deps_depth++] =                         \
+						MAKEARGS_FIRST(__VA_ARGS__);                                     \
 				_makeargs_build_deps(STRING_SPAN(MAKEARGS_REST(__VA_ARGS__)));       \
 				MAKEARGS_TARGET_CALL(target)                                         \
-				_makeargs_depth--;                                                   \
+				makeargs_deps_depth--;                                               \
 				_first_##target = false;                                             \
 			}                                                                      \
 		})
@@ -380,9 +383,9 @@ MAKEARGS_DEF bool makeargs_needs_rebuild(char* output, string_span deps)
 	return false;
 }
 
-MAKEARGS_DEF int makeargs_set_flags(const int argc, const char** argv)
+MAKEARGS_DEF size_t makeargs_set_flags(const size_t argc, const char** argv)
 {
-	int i = 1;
+	size_t i = 1;
 
 	while (i < argc)
 	{
@@ -411,9 +414,9 @@ MAKEARGS_DEF int makeargs_set_flags(const int argc, const char** argv)
 	return i;
 }
 
-MAKEARGS_DEF int makeargs_set_vars(const int argc, const char** argv)
+MAKEARGS_DEF size_t makeargs_set_vars(const size_t argc, const char** argv)
 {
-	int i = 1;
+	size_t i = 1;
 
 	while (i < argc)
 	{
@@ -436,7 +439,7 @@ MAKEARGS_DEF int makeargs_set_vars(const int argc, const char** argv)
 	return i;
 }
 
-MAKEARGS_DEF int makeargs_run_targets(const int argc, const char** argv)
+MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv)
 {
 	if (argc == 1)
 	{
@@ -444,7 +447,7 @@ MAKEARGS_DEF int makeargs_run_targets(const int argc, const char** argv)
 		return 1;
 	}
 
-	int i = 1;
+	size_t i = 1;
 
 	while (i < argc)
 	{
@@ -461,13 +464,13 @@ MAKEARGS_DEF int makeargs_run_targets(const int argc, const char** argv)
 		}
 #	define MAKEARGS_NO_REBUILD(target, ...) MAKEARGS_TARGET_CALL(target)
 
-#	define MAKEARGS_HAS_REBUILD(target, desc, output, ...)             \
-		string_span deps = STRING_SPAN(__VA_ARGS__);                      \
-		_makeargs_build_deps(deps);                                       \
-                                                                      \
-		if (_makeargs_always_run || makeargs_needs_rebuild(output, deps)) \
-		{                                                                 \
-			MAKEARGS_TARGET_CALL(target)                                    \
+#	define MAKEARGS_HAS_REBUILD(target, desc, output, ...)            \
+		string_span deps = STRING_SPAN(__VA_ARGS__);                     \
+		_makeargs_build_deps(deps);                                      \
+                                                                     \
+		if (makeargs_always_run || makeargs_needs_rebuild(output, deps)) \
+		{                                                                \
+			MAKEARGS_TARGET_CALL(target)                                   \
 		}
 
 #	define MAKEARGS_DISPATCH_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, \
