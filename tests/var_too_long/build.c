@@ -73,6 +73,6 @@ int main(const int argc, const char** argv)
 		exit(0);
 	}
 
-	MAKEARGS(argc, argv);
+	makeargs_run_targets(argc, argv);
 	return 0;
 }
