@@ -250,6 +250,7 @@ MAKEARGS_DEF void makeargs_append(const char* name, const char* suffix)
 
 MAKEARGS_DEF void makeargs_set(const char* name, const char* value)
 {
+	LOG_ASSERT(name[0] != '\0', "makeargs: variable has no name!");
 #	define MAKEARGS_VAR_FMTSTRING "name = \"%s\"\nvalue = \"%s\"\n"
 	LOG_ASSERT(makeargs_vars_count < MAKEARGS_MAX_VARS,
 						 "makeargs: too many variables, increase MAKEARGS_MAX_VARS!");
