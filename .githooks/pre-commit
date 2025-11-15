@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if ! git clang-format --diff; then
+	printf "you forgot to run clang-format!\n"
+	exit 1
+fi
+
+set -e
+
+for item in tests/*; do
+	if [ -d "$item" ]; then
+		(
+			cd $item
+			gcc -o build build.c
+			./build
+			diff -q -s output expected || printf "the %s test failed!\n" "$item"
+		)
+	fi
+done
+
+exit 0
