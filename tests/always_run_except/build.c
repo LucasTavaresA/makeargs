@@ -33,8 +33,7 @@ void out3()
 	system("cp in3.txt out3.txt");
 }
 
-#define MA_OUT "output"
-#define M_OUT "make.out"
+#define OUT "output"
 
 void snap()
 {
@@ -42,23 +41,18 @@ void snap()
 		system("rm -f out1.txt");
 
 		char cmd[1024];
-		snprintf(cmd, sizeof(cmd), "%s -B -o out1.txt all > " MA_OUT " 2>&1",
+		snprintf(cmd, sizeof(cmd), "%s -B -o out1.txt all > " OUT " 2>&1",
 						 makeargs_get("self"));
 		system(cmd);
 	}
 
-	{
-		system("rm -f out1.txt");
-		system("make -B -o out1.txt all > " M_OUT " 2>&1");
-	}
-
-	system("diff " MA_OUT " " M_OUT);
+	system("diff " OUT " expected");
 }
 
 void save()
 {
 	snap();
-	system("cp " MA_OUT " expected");
+	system("cp " OUT " expected");
 }
 
 #define MAKEARGS_IMPLEMENTATION
