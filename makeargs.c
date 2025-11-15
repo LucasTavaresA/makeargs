@@ -425,6 +425,25 @@ MAKEARGS_DEF bool makeargs_needs_rebuild(char* output, string_span deps)
 	return false;
 }
 
+// NOTE(LucasTA): annoying macro to skip the next argument on list flags
+MAKEARGS_DEF void _makeargs_skip_if_list_flag(const char** argv, size_t* i)
+{
+#	define MAKEARGS_FLAG_BOOL(...)
+#	define MAKEARGS_FLAG_LIST(list, description, usage, ...)      \
+		else if (_span_contains(argv[*i], STRING_SPAN(__VA_ARGS__))) \
+		{                                                            \
+			(*i)++;                                                    \
+		}
+
+	if (0)
+	{
+	}
+	MAKEARGS_FLAGS
+	MAKEARGS_CUSTOM_FLAGS
+#	undef MAKEARGS_FLAG_BOOL
+#	undef MAKEARGS_FLAG_LIST
+}
+
 MAKEARGS_DEF size_t makeargs_set_flags(const size_t argc, const char** argv)
 {
 	size_t i = 1;
@@ -481,6 +500,7 @@ MAKEARGS_DEF size_t makeargs_set_vars(const size_t argc, const char** argv)
 		}
 		else if (argv[i][0] == '-')
 		{
+			_makeargs_skip_if_list_flag(argv, &i);
 			i++;
 			continue;
 		}
@@ -514,21 +534,7 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv)
 		}
 		else if (eq_pos != NULL || argv[i][0] == '-')
 		{
-// NOTE(LucasTA): annoying macro to skip the next argument on list flags
-#	define MAKEARGS_FLAG_BOOL(...)
-#	define MAKEARGS_FLAG_LIST(list, description, usage, ...)     \
-		else if (_span_contains(argv[i], STRING_SPAN(__VA_ARGS__))) \
-		{                                                           \
-			i++;                                                      \
-		}
-
-			if (0)
-			{
-			}
-			MAKEARGS_FLAGS
-			MAKEARGS_CUSTOM_FLAGS
-#	undef MAKEARGS_FLAG_BOOL
-#	undef MAKEARGS_FLAG_LIST
+			_makeargs_skip_if_list_flag(argv, &i);
 			i++;
 			continue;
 		}
