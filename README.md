@@ -13,7 +13,11 @@ gcc -o build build.c
 
 ## tests
 
+All tests are run in the same way:
+
 ```sh
-./tests # runs tests, runs `diff output expected` after
-./tests save # runs tests, saving output to expected file
+# assuming you are in a test folder
+gcc -o build build.c
+./build # show diff from expected output
+./build save # saves output to expected
 ```

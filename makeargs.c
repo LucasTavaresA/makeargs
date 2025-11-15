@@ -58,7 +58,7 @@ MAKEARGS_DEF void makeargs_getenv(void);
 /// halts on unexpected stat() fails.
 MAKEARGS_DEF bool makeargs_needs_rebuild(char* output, string_span deps);
 
-/// sets custom and builtin flags to true based on the command line arguments.
+/// sets custom and builtin flags based on the command line arguments.
 /// halts with DEFAULT_TARGET() if -h or --help is specified.
 /// returns the last index or the index after MAKEARGS_SEPARATOR.
 MAKEARGS_DEF size_t makeargs_set_flags(const size_t argc, const char** argv);
