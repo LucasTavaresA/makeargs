@@ -298,7 +298,7 @@ MAKEARGS_DEF void makeargs_getenv(void)
 {
 	for (char** env = MAKEARGS_ENVIRON; *env != NULL; env++)
 	{
-		makeargs_set_from_var((const char*)env);
+		makeargs_set_from_var(*env);
 	}
 }
 
