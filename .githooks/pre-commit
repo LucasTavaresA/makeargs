@@ -11,9 +11,12 @@ for item in tests/*; do
 	if [ -d "$item" ]; then
 		(
 			cd $item
-			gcc -o build build.c
+			cc -w -o build build.c
 			./build
-			diff -q -s output expected || printf "the %s test failed!\n" "$item"
+			if ! diff -q -s output expected; then
+				printf "the %s test failed!\n" "$item"
+				exit 1
+			fi
 		)
 	fi
 done
