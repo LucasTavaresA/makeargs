@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../span/span.c"
+#include "../../span/span.c"
 
 FILE* out;
 #define LOG_STDOUT out
-#include "../log.c"
+#include "../../log.c"
 
 #define MAKEARGS_TARGET_CALL(target) LOG_MSG(#target "()\n");
 #define MAKEARGS_IMPLEMENTATION
@@ -15,7 +15,7 @@ FILE* out;
 	MAKEARGS_TARGET(nodesc, "")                                         \
 	MAKEARGS_TARGET(build, "builds main", "main", "main.c", "common.c") \
 	MAKEARGS_TARGET(run, "calls build", "", "main")
-#include "../makeargs.c"
+#include "../../makeargs.c"
 
 #define SEPARATOR \
 	"--------------------------------------------------------------------------------\n"

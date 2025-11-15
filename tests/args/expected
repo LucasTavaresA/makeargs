@@ -1,16 +1,15 @@
 ./test 
 Usage: ./test [empty|desc|nodesc|build|run]
-  empty              
-  desc               has a description
-  nodesc             
-  build              builds main
-  run                calls build
+  empty                          
+  desc                           has a description
+  nodesc                         
+  build                          builds main
+  run                            calls build
 
 Flags:
-  -n                  print without running anything
-  --dry-run           print without running anything
-  -B                  Unconditionally run targets
-  --always-run        Unconditionally run targets
+  -n|--dry-run                   print without running anything
+  -B|--always-run                Unconditionally run targets
+  -o|--assume-old <target>       never remake <target>
 1 <- makeargs_run_targets()
 1 <- makeargs_set_vars()
 --------------------------------------------------------------------------------

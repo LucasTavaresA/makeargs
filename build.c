@@ -14,7 +14,7 @@
 // these explain themselves
 void format()
 {
-	system("clang-format -i ./*.c ./tests/*.c");
+	system("clang-format -i ./*.c ./tests/**/*.c");
 }
 
 void clean()

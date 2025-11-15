@@ -1,0 +1,7 @@
+Building out2.txt from in2.txt
+Building out3.txt from in3.txt
+Building all
+cat: out1.txt: No such file or directory
+out2()
+out3()
+all()
