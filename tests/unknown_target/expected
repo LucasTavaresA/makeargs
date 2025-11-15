@@ -1,4 +1,4 @@
-../../makeargs.c:570: Unknown target foo()
+makeargs_run_targets: Unknown target foo()
 Usage: ./build [save|snap]
   save                           
   snap                           

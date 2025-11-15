@@ -1,6 +1,6 @@
-../../makeargs.c:385: Attempt to build circular dependency!
+_makeargs_build_deps: Attempt to build circular dependency!
 b -> c -> a -> b
-../../makeargs.c:385: Attempt to build circular dependency!
+_makeargs_build_deps: Attempt to build circular dependency!
 c -> a -> b -> c
-../../makeargs.c:385: Attempt to build circular dependency!
+_makeargs_build_deps: Attempt to build circular dependency!
 a -> b -> c -> a

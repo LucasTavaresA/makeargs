@@ -1,12 +1,12 @@
 name = "name"
 value = "aaaaaaaaaaaaaaaaaaaaaaaaaa"
-makeargs_append(): appended variable is too long, increase MAKEARGS_VAR_LENGTH!
+makeargs_append: appended variable is too long, increase MAKEARGS_VAR_LENGTH!
 append()
 name = "aaaaaaaaaaaaaaaaaaaaaaaaaa"
 value = "value"
-makeargs_set(): variable name too long, increase MAKEARGS_VAR_LENGTH!
+makeargs_set: variable name too long, increase MAKEARGS_VAR_LENGTH!
 setname()
 name = "name"
 value = "aaaaaaaaaaaaaaaaaaaaaaaaaa"
-makeargs_set(): variable value too long, increase MAKEARGS_VAR_LENGTH!
+makeargs_set: variable value too long, increase MAKEARGS_VAR_LENGTH!
 setval()

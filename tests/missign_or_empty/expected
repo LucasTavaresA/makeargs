@@ -1,6 +1,10 @@
-makeargs: variable has no name!
+name = ""
+value = "nothing?"
+makeargs_set: variable has no name!
 setname()
-makeargs: variable has no name!
+name = ""
+value = "BAR"
+makeargs_set: variable has no name!
 argname()
-makeargs: missing argument for -o
+makeargs_set_flags: missing argument for -o
 flag()
