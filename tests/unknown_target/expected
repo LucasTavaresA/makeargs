@@ -1,0 +1,9 @@
+../../makeargs.c:570: Unknown target foo()
+Usage: ./build [save|snap]
+  save                           
+  snap                           
+
+Flags:
+  -n|--dry-run                   print without running anything
+  -B|--always-run                Unconditionally run targets
+  -o|--assume-old <target>       never remake <target>
