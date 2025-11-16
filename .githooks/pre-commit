@@ -1,24 +1,42 @@
 #!/bin/bash
 
-if ! git clang-format --diff; then
-	printf "you forgot to run clang-format!\n"
-	exit 1
-fi
+fail=0
 
-set -e
+(
+	if ! git clang-format --diff; then
+		printf "you forgot to run clang-format!\n"
+		exit 1
+	fi
+) &
+format_pid=$!
+
+pids=()
 
 for item in tests/*; do
 	if [ -d "$item" ]; then
 		(
-			cd $item
-			cc -w -o build build.c
-			./build
+			cd "$item" || exit 1
+			cc -w -o build build.c || exit 1
+			./build || exit 1
 			if ! diff -q -s output expected; then
 				printf "the %s test failed!\n" "$item"
 				exit 1
 			fi
-		)
+		) &
+		pids+=($!)
 	fi
 done
 
-exit 0
+# Wait for format check
+if ! wait $format_pid; then
+	fail=1
+fi
+
+# Wait for all tests
+for pid in "${pids[@]}"; do
+	if ! wait $pid; then
+		fail=1
+	fi
+done
+
+exit $fail
