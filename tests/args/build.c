@@ -1,7 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "../../span/span.c"
 
 FILE* out;
 #define LOG_STDOUT out
@@ -20,42 +17,53 @@ FILE* out;
 #define SEPARATOR \
 	"--------------------------------------------------------------------------------\n"
 
-typedef SPAN_T(string_span) ss_span;
-#define SS_SPAN(...) (ss_span) SPAN(string_span, __VA_ARGS__)
+#define STR_ARRAY(...)                    \
+	(str_array_t)                           \
+	{                                       \
+		MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__) \
+	}
 
-const ss_span test_args =
-		SS_SPAN(STRING_SPAN("./test"),
-						STRING_SPAN("./test", "build"),
-						STRING_SPAN("./test", "build", "run"),
-						STRING_SPAN("./test", "--"),
-						STRING_SPAN("./test", "build", "--"),
-						STRING_SPAN("./test", "run", "build", "--"),
-						STRING_SPAN("./test", "--", "-s"),
-						STRING_SPAN("./test", "build", "--", "-s"),
-						STRING_SPAN("./test", "build", "run", "--", "-s"),
-						STRING_SPAN("./test", "--", "-s", "--test"),
-						STRING_SPAN("./test", "build", "--", "-s"),
-						STRING_SPAN("./test", "run", "build", "--", "-s", "--test"),
-						STRING_SPAN("./test", "CONTAINER=docker"),
-						STRING_SPAN("./test", "run", "CONTAINER=docker", "build"),
-						STRING_SPAN("./test", "CONTAINER="),
-						STRING_SPAN("./test", "run", "CONTAINER=", "build"),
-						STRING_SPAN("./test", "build", "VAR="),
-						STRING_SPAN("./test", "VAR=", "build"),
-						STRING_SPAN("./test", "build", "--", "DEBUG=1"),
-						STRING_SPAN("./test", "build", "--", "DEBUG="),
-						STRING_SPAN("./test", "FOO=bar", "--", "-s"),
-						STRING_SPAN("./test", "--", "FOO=bar"),
-						STRING_SPAN("./test", "FOO=", "--", "-s"),
-						STRING_SPAN("./test", "--", "FOO="), );
+typedef struct
+{
+	const size_t size;
+	const char* const* str;
+} str_array_t;
 
-void print_args(string_span ss)
+const str_array_t test_args[] = {
+		STR_ARRAY("./test"),
+		STR_ARRAY("./test", "build"),
+		STR_ARRAY("./test", "build", "run"),
+		STR_ARRAY("./test", "--"),
+		STR_ARRAY("./test", "build", "--"),
+		STR_ARRAY("./test", "run", "build", "--"),
+		STR_ARRAY("./test", "--", "-s"),
+		STR_ARRAY("./test", "build", "--", "-s"),
+		STR_ARRAY("./test", "build", "run", "--", "-s"),
+		STR_ARRAY("./test", "--", "-s", "--test"),
+		STR_ARRAY("./test", "build", "--", "-s"),
+		STR_ARRAY("./test", "run", "build", "--", "-s", "--test"),
+		STR_ARRAY("./test", "CONTAINER=docker"),
+		STR_ARRAY("./test", "run", "CONTAINER=docker", "build"),
+		STR_ARRAY("./test", "CONTAINER="),
+		STR_ARRAY("./test", "run", "CONTAINER=", "build"),
+		STR_ARRAY("./test", "build", "VAR="),
+		STR_ARRAY("./test", "VAR=", "build"),
+		STR_ARRAY("./test", "build", "--", "DEBUG=1"),
+		STR_ARRAY("./test", "build", "--", "DEBUG="),
+		STR_ARRAY("./test", "FOO=bar", "--", "-s"),
+		STR_ARRAY("./test", "--", "FOO=bar"),
+		STR_ARRAY("./test", "FOO=", "--", "-s"),
+		STR_ARRAY("./test", "--", "FOO="),
+};
+const size_t test_args_count = MAKEARGS_COUNTOF(test_args);
+
+void print_array(const size_t size, const char* const array[])
 {
 	int i = 0;
 
-	while (i < ss.size)
+	while (i < size)
 	{
-		LOG_MSG("%s ", ss.data[i]);
+		LOG_MSG("%s ", array[i]);
 		i++;
 	}
 	LOG_MSG("\n");
@@ -75,14 +83,13 @@ int main(int argc, const char** argv)
 	{
 		makeargs_vars_count = 0;
 
-		for (int i = 0; i < test_args.size; i++)
+		for (int i = 0; i < test_args_count; i++)
 		{
-			print_args(test_args.data[i]);
-			int ret =
-					makeargs_run_targets(test_args.data[i].size, test_args.data[i].data);
+			print_array(test_args[i].size, test_args[i].str);
+			int ret = makeargs_run_targets(test_args[i].size, test_args[i].str);
 			LOG_MSG("%d <- makeargs_run_targets()\n", ret);
 
-			ret = makeargs_set_vars(test_args.data[i].size, test_args.data[i].data);
+			ret = makeargs_set_vars(test_args[i].size, test_args[i].str);
 			LOG_MSG("%d <- makeargs_set_vars()\n", ret);
 
 			for (int i = 0; i < makeargs_vars_count; i++)

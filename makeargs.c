@@ -18,7 +18,6 @@
 #	endif
 
 #	include "log.c"
-#	include "span/span.c"
 #endif
 
 #ifndef MAKEARGS_DEF
@@ -56,7 +55,9 @@ MAKEARGS_DEF void makeargs_getenv(void);
 /// returns true if the output is newer than the dependencies.
 /// returns true if the output is "" or the file doesnt exist.
 /// halts on unexpected stat() fails.
-MAKEARGS_DEF bool makeargs_needs_rebuild(char* output, string_span deps);
+MAKEARGS_DEF bool makeargs_needs_rebuild(char* output,
+																				 const size_t deps_count,
+																				 const char* const deps[]);
 
 /// sets custom and builtin flags based on the command line arguments.
 /// halts with DEFAULT_TARGET() if -h or --help is specified.
@@ -116,6 +117,21 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv);
 
 #	define MAKEARGS_FIRST(x, ...) x
 #	define MAKEARGS_REST(x, ...) __VA_ARGS__
+
+#	define MAKEARGS_ARGS_ARRAY(type, ...) \
+		(type const[])                       \
+		{                                    \
+			__VA_ARGS__                        \
+		}
+
+#	define MAKEARGS_ARGS_ARRAY_COUNTOF(type, ...) \
+		MAKEARGS_COUNTOF(((type const[]){__VA_ARGS__}))
+
+#	define MAKEARGS_COUNTOF(x) (sizeof(x) / sizeof(*(x)))
+
+#	define MAKEARGS_PARAM_STR_ARRAY(...)                    \
+		MAKEARGS_ARGS_ARRAY_COUNTOF(const char*, __VA_ARGS__), \
+				MAKEARGS_ARGS_ARRAY(const char*, __VA_ARGS__)
 
 /// how the targets will be called
 #	ifndef MAKEARGS_TARGET_CALL
@@ -317,11 +333,13 @@ MAKEARGS_DEF bool _stack_contains(const char* str,
 	return false;
 }
 
-MAKEARGS_DEF bool _span_contains(const char* str, string_span span)
+MAKEARGS_DEF bool _array_contains(const char* str,
+																	const size_t count,
+																	const char* const array[])
 {
-	for (size_t i = 0; i < span.size; i++)
+	for (size_t i = 0; i < count; i++)
 	{
-		if (MAKEARGS_STRCMP(str, span.data[i]) == 0)
+		if (MAKEARGS_STRCMP(str, array[i]) == 0)
 		{
 			return true;
 		}
@@ -330,7 +348,8 @@ MAKEARGS_DEF bool _span_contains(const char* str, string_span span)
 	return false;
 }
 
-MAKEARGS_DEF void _makeargs_build_deps(string_span deps)
+MAKEARGS_DEF void _makeargs_build_deps(const size_t deps_count,
+																			 const char* const deps[])
 {
 	static const char* makeargs_deps_stack[MAKEARGS_MAX_VARS];
 	static size_t makeargs_deps_depth = 0;
@@ -338,18 +357,19 @@ MAKEARGS_DEF void _makeargs_build_deps(string_span deps)
 	MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
 
-	for (size_t i = 0; i < deps.size; ++i)
+	for (size_t i = 0; i < deps_count; ++i)
 	{
 // NOTE(LucasTA): checked against '\0' to prevent "" output
 #	define MAKEARGS_OUTPUTS(target, description, ...)                          \
 		__VA_OPT__(else if (MAKEARGS_FIRST(__VA_ARGS__)[0] != '\0' &&             \
-												MAKEARGS_STRCMP(deps.data[i],                         \
+												MAKEARGS_STRCMP(deps[i],                              \
 																				MAKEARGS_FIRST(__VA_ARGS__)) == 0) {  \
 			if (!_stack_contains(MAKEARGS_FIRST(__VA_ARGS__), makeargs_assumed_old, \
 													 makeargs_assumed_old_count) &&                     \
 					(makeargs_always_run ||                                             \
-					 makeargs_needs_rebuild(MAKEARGS_FIRST(__VA_ARGS__),                \
-																	STRING_SPAN(MAKEARGS_REST(__VA_ARGS__)))))  \
+					 makeargs_needs_rebuild(                                            \
+							 MAKEARGS_FIRST(__VA_ARGS__),                                   \
+							 MAKEARGS_PARAM_STR_ARRAY(MAKEARGS_REST(__VA_ARGS__)))))        \
 			{                                                                       \
 				if (_first_##target)                                                  \
 				{                                                                     \
@@ -368,7 +388,8 @@ MAKEARGS_DEF void _makeargs_build_deps(string_span deps)
 						__FUNCTION__);                                                    \
 				makeargs_deps_stack[makeargs_deps_depth++] =                          \
 						MAKEARGS_FIRST(__VA_ARGS__);                                      \
-				_makeargs_build_deps(STRING_SPAN(MAKEARGS_REST(__VA_ARGS__)));        \
+				_makeargs_build_deps(                                                 \
+						MAKEARGS_PARAM_STR_ARRAY(MAKEARGS_REST(__VA_ARGS__)));            \
 				MAKEARGS_TARGET_CALL(target)                                          \
 				makeargs_deps_depth--;                                                \
 				_first_##target = false;                                              \
@@ -387,7 +408,9 @@ MAKEARGS_DEF void _makeargs_build_deps(string_span deps)
 	}
 }
 
-MAKEARGS_DEF bool makeargs_needs_rebuild(char* output, string_span deps)
+MAKEARGS_DEF bool makeargs_needs_rebuild(char* output,
+																				 const size_t deps_count,
+																				 const char* const deps[])
 {
 	struct STAT_STRUCT st = {0};
 
@@ -405,11 +428,11 @@ MAKEARGS_DEF bool makeargs_needs_rebuild(char* output, string_span deps)
 
 	time_t output_time = st.st_mtime;
 
-	for (size_t i = 0; i < deps.size; ++i)
+	for (size_t i = 0; i < deps_count; ++i)
 	{
-		if (STAT_FUNC(deps.data[i], &st) < 0)
+		if (STAT_FUNC(deps[i], &st) < 0)
 		{
-			LOG_HALT(LOG_ERROR_CODE, "could not stat(%s): %s!", deps.data[i],
+			LOG_HALT(LOG_ERROR_CODE, "could not stat(%s): %s!", deps[i],
 							 strerror(errno));
 		}
 
@@ -429,10 +452,10 @@ MAKEARGS_DEF bool makeargs_needs_rebuild(char* output, string_span deps)
 MAKEARGS_DEF void _makeargs_skip_if_list_flag(const char** argv, size_t* i)
 {
 #	define MAKEARGS_FLAG_BOOL(...)
-#	define MAKEARGS_FLAG_LIST(list, description, usage, ...)      \
-		else if (_span_contains(argv[*i], STRING_SPAN(__VA_ARGS__))) \
-		{                                                            \
-			(*i)++;                                                    \
+#	define MAKEARGS_FLAG_LIST(list, description, usage, ...)                    \
+		else if (_array_contains(argv[*i], MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))) \
+		{                                                                          \
+			(*i)++;                                                                  \
 		}
 
 	if (0)
@@ -460,22 +483,22 @@ MAKEARGS_DEF size_t makeargs_set_flags(const size_t argc, const char** argv)
 			MAKEARGS_DEFAULT_TARGET(argv[0]);
 			LOG_EXIT(0);
 		}
-#	define MAKEARGS_FLAG_BOOL(var, description, _, ...)          \
-		else if (_span_contains(argv[i], STRING_SPAN(__VA_ARGS__))) \
-		{                                                           \
-			var = true;                                               \
+#	define MAKEARGS_FLAG_BOOL(var, description, _, ...)                        \
+		else if (_array_contains(argv[i], MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))) \
+		{                                                                         \
+			var = true;                                                             \
 		}
-#	define MAKEARGS_FLAG_LIST(list, description, usage, ...)                 \
-		else if (_span_contains(argv[i], STRING_SPAN(__VA_ARGS__)))             \
-		{                                                                       \
-			LOG_ASSERT(list##_count < MAKEARGS_MAX_VARS,                          \
-								 "%s: too many files %s, increase MAKEARGS_MAX_VARS!",      \
-								 __FUNCTION__, #list);                                      \
-			LOG_ASSERT(argc > i + 1, "%s: missing argument for %s", __FUNCTION__, \
-								 argv[i]);                                                  \
-			i++;                                                                  \
-			list[list##_count] = argv[i];                                         \
-			list##_count++;                                                       \
+#	define MAKEARGS_FLAG_LIST(list, description, usage, ...)                   \
+		else if (_array_contains(argv[i], MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))) \
+		{                                                                         \
+			LOG_ASSERT(list##_count < MAKEARGS_MAX_VARS,                            \
+								 "%s: too many files %s, increase MAKEARGS_MAX_VARS!",        \
+								 __FUNCTION__, #list);                                        \
+			LOG_ASSERT(argc > i + 1, "%s: missing argument for %s", __FUNCTION__,   \
+								 argv[i]);                                                    \
+			i++;                                                                    \
+			list[list##_count] = argv[i];                                           \
+			list##_count++;                                                         \
 		}
 
 		MAKEARGS_FLAGS
@@ -541,12 +564,13 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv)
 #	define MAKEARGS_NO_REBUILD(target, ...) MAKEARGS_TARGET_CALL(target)
 
 #	define MAKEARGS_HAS_REBUILD(target, desc, output, ...)                      \
-		string_span deps = STRING_SPAN(__VA_ARGS__);                               \
-		_makeargs_build_deps(deps);                                                \
+		_makeargs_build_deps(MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__));               \
                                                                                \
 		if ((output[0] == '\0' || !_stack_contains(output, makeargs_assumed_old,   \
 																							 makeargs_assumed_old_count)) && \
-				(makeargs_always_run || makeargs_needs_rebuild(output, deps)))         \
+				(makeargs_always_run ||                                                \
+				 makeargs_needs_rebuild(output,                                        \
+																MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))))       \
 		{                                                                          \
 			MAKEARGS_TARGET_CALL(target)                                             \
 		}
