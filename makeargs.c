@@ -560,6 +560,13 @@ MAKEARGS_DEF size_t makeargs_set_flags(const size_t argc, const char** argv)
 
 		MAKEARGS_FLAGS
 		MAKEARGS_CUSTOM_FLAGS
+		else if (argv[i][0] == '-')
+		{
+			MAKEARGS_PRINT(MAKEARGS_STDERR, "%s: Unknown flag %s\n", __FUNCTION__,
+										 argv[i]);
+			MAKEARGS_DEFAULT_TARGET(argv[0]);
+			MAKEARGS_EXIT(MAKEARGS_EXIT_USAGE);
+		}
 #	undef MAKEARGS_FLAG_BOOL
 #	undef MAKEARGS_FLAG_LIST
 		i++;
