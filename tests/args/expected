@@ -10,6 +10,7 @@ Flags:
   -n|--dry-run                   print without running anything
   -B|--always-run                Unconditionally run targets
   -o|--assume-old <target>       never remake <target>
+  -s|--silent|--quiet            Silent mode, don't print anything
 1 <- makeargs_run_targets()
 1 <- makeargs_set_vars()
 --------------------------------------------------------------------------------
