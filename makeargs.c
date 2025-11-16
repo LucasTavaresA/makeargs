@@ -16,8 +16,6 @@
 #		define STAT_STRUCT stat
 #		define STAT_FUNC stat
 #	endif
-
-#	include "log.c"
 #endif
 
 #ifndef MAKEARGS_DEF
@@ -115,6 +113,50 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv);
 #		define MAKEARGS_CUSTOM_FLAGS
 #	endif
 
+// clang-format off
+#define MAKEARGS_EXIT_OK           0
+#define MAKEARGS_EXIT_USAGE        64   /* command line usage error */
+#define MAKEARGS_EXIT_NOINPUT      66   /* cannot open input */
+#define MAKEARGS_EXIT_SOFTWARE     70   /* internal software error */
+#define MAKEARGS_EXIT_IOERR        74   /* input/output error */
+#define MAKEARGS_EXIT_CONFIG       78   /* configuration error */
+// clang-format on
+
+#	ifndef MAKEARGS_STDOUT
+#		define MAKEARGS_STDOUT stdout
+#	endif
+
+#	ifndef MAKEARGS_STDERR
+#		define MAKEARGS_STDERR stderr
+#	endif
+
+#	ifndef MAKEARGS_FPRINTF
+#		define MAKEARGS_FPRINTF fprintf
+#	endif
+
+#	ifndef MAKEARGS_EXIT
+#		define MAKEARGS_EXIT exit
+#	endif
+
+#	define MAKEARGS_MSG(format, ...) \
+		MAKEARGS_FPRINTF(MAKEARGS_STDOUT, format, ##__VA_ARGS__)
+
+#	define MAKEARGS_HALT(status, format, ...)                         \
+		do                                                               \
+		{                                                                \
+			MAKEARGS_FPRINTF(MAKEARGS_STDERR, format "\n", ##__VA_ARGS__); \
+			MAKEARGS_EXIT(status);                                         \
+		} while (0)
+
+#	define MAKEARGS_ASSERT(status, cond, format, ...)  \
+		do                                                \
+		{                                                 \
+			if (!(cond))                                    \
+			{                                               \
+				MAKEARGS_HALT(status, format, ##__VA_ARGS__); \
+			}                                               \
+		} while (0)
+
 #	define MAKEARGS_FIRST(x, ...) x
 #	define MAKEARGS_REST(x, ...) __VA_ARGS__
 
@@ -136,7 +178,7 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv);
 /// how the targets will be called
 #	ifndef MAKEARGS_TARGET_CALL
 #		define MAKEARGS_TARGET_CALL(target) \
-			LOG_MSG("%s()\n", #target);        \
+			MAKEARGS_MSG("%s()\n", #target);   \
 			if (!makeargs_dry_run)             \
 				target();
 #	endif
@@ -206,24 +248,24 @@ static bool makeargs_always_run = false;
 
 MAKEARGS_DEF void makeargs_help(const char* argv0)
 {
-	LOG_MSG("Usage: %s [", argv0);
+	MAKEARGS_MSG("Usage: %s [", argv0);
 	const char* sep = "";
 #	define MAKEARGS_TARGET(target, ...) \
-		LOG_MSG("%s" #target, sep);        \
+		MAKEARGS_MSG("%s" #target, sep);   \
 		sep = "|";
 	MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
-	LOG_MSG("]\n");
+	MAKEARGS_MSG("]\n");
 
 #	define MAKEARGS_TARGET(target, ...) \
-		LOG_MSG("  %-30s %s\n", #target, MAKEARGS_FIRST(__VA_ARGS__) "");
+		MAKEARGS_MSG("  %-30s %s\n", #target, MAKEARGS_FIRST(__VA_ARGS__) "");
 
 	MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
 
-	LOG_MSG("\nFlags:\n");
+	MAKEARGS_MSG("\nFlags:\n");
 #	define MAKEARGS_FLAG_DESCRIBE(description, usage) \
-		LOG_MSG("  %-30s %s\n", usage, description);
+		MAKEARGS_MSG("  %-30s %s\n", usage, description);
 
 #	define MAKEARGS_FLAG_LIST(_, description, usage, ...) \
 		MAKEARGS_FLAG_DESCRIBE(description, usage)
@@ -247,7 +289,8 @@ MAKEARGS_DEF char* makeargs_get(const char* name)
 		}
 	}
 
-	LOG_HALT(LOG_ERROR_CODE, "%s: Variable '%s' not found!", __FUNCTION__, name);
+	MAKEARGS_HALT(MAKEARGS_EXIT_CONFIG, "%s: Variable '%s' not found!",
+								__FUNCTION__, name);
 }
 
 MAKEARGS_DEF void makeargs_append(const char* name, const char* suffix)
@@ -255,7 +298,8 @@ MAKEARGS_DEF void makeargs_append(const char* name, const char* suffix)
 	char* value = makeargs_get(name);
 	size_t value_len = MAKEARGS_STRLEN(value);
 
-	LOG_ASSERT(
+	MAKEARGS_ASSERT(
+			MAKEARGS_EXIT_CONFIG,
 			value_len + MAKEARGS_STRLEN(suffix) < MAKEARGS_VAR_LENGTH,
 			"name = \"%s\"\nvalue = \"%s%s\"\n%s: appended variable is too long, increase MAKEARGS_VAR_LENGTH!",
 			name, value, suffix, __FUNCTION__);
@@ -266,20 +310,22 @@ MAKEARGS_DEF void makeargs_append(const char* name, const char* suffix)
 MAKEARGS_DEF void makeargs_set(const char* name, const char* value)
 {
 #	define MAKEARGS_VAR_FMTSTRING "name = \"%s\"\nvalue = \"%s\"\n"
-	LOG_ASSERT(name[0] != '\0',
-						 MAKEARGS_VAR_FMTSTRING "%s: variable has no name!", name, value,
-						 __FUNCTION__);
-	LOG_ASSERT(makeargs_vars_count < MAKEARGS_MAX_VARS,
-						 "%s: too many variables, increase MAKEARGS_MAX_VARS!",
-						 __FUNCTION__);
-	LOG_ASSERT(MAKEARGS_STRLEN(name) < MAKEARGS_VAR_LENGTH,
-						 MAKEARGS_VAR_FMTSTRING
-						 "%s: variable name too long, increase MAKEARGS_VAR_LENGTH!",
-						 name, value, __FUNCTION__);
-	LOG_ASSERT(MAKEARGS_STRLEN(value) < MAKEARGS_VAR_LENGTH,
-						 MAKEARGS_VAR_FMTSTRING
-						 "%s: variable value too long, increase MAKEARGS_VAR_LENGTH!",
-						 name, value, __FUNCTION__);
+	MAKEARGS_ASSERT(MAKEARGS_EXIT_CONFIG, name[0] != '\0',
+									MAKEARGS_VAR_FMTSTRING "%s: variable has no name!", name,
+									value, __FUNCTION__);
+	MAKEARGS_ASSERT(MAKEARGS_EXIT_CONFIG, makeargs_vars_count < MAKEARGS_MAX_VARS,
+									"%s: too many variables, increase MAKEARGS_MAX_VARS!",
+									__FUNCTION__);
+	MAKEARGS_ASSERT(MAKEARGS_EXIT_CONFIG,
+									MAKEARGS_STRLEN(name) < MAKEARGS_VAR_LENGTH,
+									MAKEARGS_VAR_FMTSTRING
+									"%s: variable name too long, increase MAKEARGS_VAR_LENGTH!",
+									name, value, __FUNCTION__);
+	MAKEARGS_ASSERT(MAKEARGS_EXIT_CONFIG,
+									MAKEARGS_STRLEN(value) < MAKEARGS_VAR_LENGTH,
+									MAKEARGS_VAR_FMTSTRING
+									"%s: variable value too long, increase MAKEARGS_VAR_LENGTH!",
+									name, value, __FUNCTION__);
 #	undef MAKEARGS_VAR_FMTSTRING
 
 	for (size_t i = 0; i < makeargs_vars_count; i++)
@@ -373,17 +419,19 @@ MAKEARGS_DEF void _makeargs_build_deps(const size_t deps_count,
 			{                                                                       \
 				if (_first_##target)                                                  \
 				{                                                                     \
-					LOG_FPRINTF(LOG_STDERR,                                             \
-											"%s: Attempt to build circular dependency!\n",          \
-											__FUNCTION__);                                          \
+					MAKEARGS_FPRINTF(MAKEARGS_STDERR,                                   \
+													 "%s: Attempt to build circular dependency!\n",     \
+													 __FUNCTION__);                                     \
 					for (size_t j = 0; j < makeargs_deps_depth; j++)                    \
-						LOG_FPRINTF(LOG_STDERR, "%s -> ", makeargs_deps_stack[j]);        \
-					LOG_HALT(LOG_ERROR_CODE, "%s", MAKEARGS_FIRST(__VA_ARGS__));        \
+						MAKEARGS_FPRINTF(MAKEARGS_STDERR, "%s -> ",                       \
+														 makeargs_deps_stack[j]);                         \
+					MAKEARGS_HALT(MAKEARGS_EXIT_CONFIG, "%s",                           \
+												MAKEARGS_FIRST(__VA_ARGS__));                         \
 				}                                                                     \
                                                                               \
 				_first_##target = true;                                               \
-				LOG_ASSERT(                                                           \
-						makeargs_deps_depth < MAKEARGS_MAX_VARS,                          \
+				MAKEARGS_ASSERT(                                                      \
+						MAKEARGS_EXIT_CONFIG, makeargs_deps_depth < MAKEARGS_MAX_VARS,    \
 						"%s: dependency stack overflow - too many nested dependencies!",  \
 						__FUNCTION__);                                                    \
 				makeargs_deps_stack[makeargs_deps_depth++] =                          \
@@ -422,8 +470,8 @@ MAKEARGS_DEF bool makeargs_needs_rebuild(char* output,
 			return true;
 		}
 
-		LOG_HALT(LOG_ERROR_CODE, "could not stat(%s): %s!", output,
-						 strerror(errno));
+		MAKEARGS_HALT(MAKEARGS_EXIT_IOERR, "could not stat(%s): %s!", output,
+									strerror(errno));
 	}
 
 	time_t output_time = st.st_mtime;
@@ -432,8 +480,8 @@ MAKEARGS_DEF bool makeargs_needs_rebuild(char* output,
 	{
 		if (STAT_FUNC(deps[i], &st) < 0)
 		{
-			LOG_HALT(LOG_ERROR_CODE, "could not stat(%s): %s!", deps[i],
-							 strerror(errno));
+			MAKEARGS_HALT(MAKEARGS_EXIT_NOINPUT, "could not stat(%s): %s!", deps[i],
+										strerror(errno));
 		}
 
 		time_t dep_time = st.st_mtime;
@@ -481,7 +529,7 @@ MAKEARGS_DEF size_t makeargs_set_flags(const size_t argc, const char** argv)
 						 (MAKEARGS_STRCMP(argv[i], "--help") == 0))
 		{
 			MAKEARGS_DEFAULT_TARGET(argv[0]);
-			LOG_EXIT(0);
+			MAKEARGS_EXIT(MAKEARGS_EXIT_OK);
 		}
 #	define MAKEARGS_FLAG_BOOL(var, description, _, ...)                        \
 		else if (_array_contains(argv[i], MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))) \
@@ -491,11 +539,11 @@ MAKEARGS_DEF size_t makeargs_set_flags(const size_t argc, const char** argv)
 #	define MAKEARGS_FLAG_LIST(list, description, usage, ...)                   \
 		else if (_array_contains(argv[i], MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))) \
 		{                                                                         \
-			LOG_ASSERT(list##_count < MAKEARGS_MAX_VARS,                            \
-								 "%s: too many files %s, increase MAKEARGS_MAX_VARS!",        \
-								 __FUNCTION__, #list);                                        \
-			LOG_ASSERT(argc > i + 1, "%s: missing argument for %s", __FUNCTION__,   \
-								 argv[i]);                                                    \
+			MAKEARGS_ASSERT(MAKEARGS_EXIT_CONFIG, list##_count < MAKEARGS_MAX_VARS, \
+											"%s: too many files %s, increase MAKEARGS_MAX_VARS!",   \
+											__FUNCTION__, #list);                                   \
+			MAKEARGS_ASSERT(MAKEARGS_EXIT_USAGE, argc > i + 1,                      \
+											"%s: missing argument for %s", __FUNCTION__, argv[i]);  \
 			i++;                                                                    \
 			list[list##_count] = argv[i];                                           \
 			list##_count++;                                                         \
@@ -596,10 +644,10 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv)
 #	undef MAKEARGS_NO_REBUILD
 		else
 		{
-			LOG_FPRINTF(LOG_STDERR, "%s: Unknown target %s()\n", __FUNCTION__,
-									argv[i]);
+			MAKEARGS_FPRINTF(MAKEARGS_STDERR, "%s: Unknown target %s()\n",
+											 __FUNCTION__, argv[i]);
 			MAKEARGS_DEFAULT_TARGET(argv[0]);
-			LOG_EXIT(1);
+			MAKEARGS_EXIT(MAKEARGS_EXIT_USAGE);
 		}
 	}
 
