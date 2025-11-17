@@ -105,7 +105,9 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv);
 			MAKEARGS_FLAG_LIST(makeargs_assumed_old, "never remake <target>",        \
 												 "-o|--assume-old <target>", "-o", "--assume-old")     \
 			MAKEARGS_FLAG_BOOL(makeargs_silent, "Silent mode, don't print anything", \
-												 "-s|--silent|--quiet", "-s", "--silent", "--quiet")
+												 "-s|--silent|--quiet", "-s", "--silent", "--quiet")   \
+			MAKEARGS_FLAG_LIST(makeargs_assumed_new, "Act like <target> is new",     \
+												 "-W|--assume-new <target>", "-W", "--assume-new")
 #	endif
 
 /// an X macro list for additional flags
@@ -250,6 +252,8 @@ _Static_assert(sizeof(makeargs_vars) < 4 * 1024 * 1024,
 
 static const char* makeargs_assumed_old[MAKEARGS_MAX_VARS];
 static size_t makeargs_assumed_old_count = 0;
+static const char* makeargs_assumed_new[MAKEARGS_MAX_VARS];
+static size_t makeargs_assumed_new_count = 0;
 
 static size_t makeargs_vars_count = 0;
 static bool makeargs_dry_run = false;
@@ -408,7 +412,8 @@ MAKEARGS_DEF bool _makeargs_build_out(const char* output,
 																			const size_t deps_count,
 																			const char* const deps[])
 {
-	if (output[0] == '\0')
+	if (output[0] == '\0' ||
+			_stack_contains(output, makeargs_assumed_new, makeargs_assumed_new_count))
 	{
 		return true;
 	}

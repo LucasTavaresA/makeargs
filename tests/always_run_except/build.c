@@ -46,6 +46,26 @@ void snap()
 		system(cmd);
 	}
 
+	{
+		system("rm -f out1.txt");
+
+		char cmd[1024];
+		snprintf(cmd, sizeof(cmd),
+						 "%s -B -o out1.txt -W out1.txt all >> " OUT " 2>&1",
+						 makeargs_get("self"));
+		system(cmd);
+	}
+
+	{
+		system("rm -f out1.txt");
+
+		char cmd[1024];
+		snprintf(cmd, sizeof(cmd),
+						 "%s -B -W out1.txt -o out1.txt all >> " OUT " 2>&1",
+						 makeargs_get("self"));
+		system(cmd);
+	}
+
 	system("diff " OUT " expected");
 }
 
