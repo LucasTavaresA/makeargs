@@ -53,7 +53,7 @@ MAKEARGS_DEF void makeargs_getenv(void);
 /// returns true if the output is newer than the dependencies.
 /// returns true if the output is "" or the file doesnt exist.
 /// halts on unexpected stat() fails.
-MAKEARGS_DEF bool makeargs_needs_rebuild(char* output,
+MAKEARGS_DEF bool makeargs_needs_rebuild(const char* output,
 																				 const size_t deps_count,
 																				 const char* const deps[]);
 
@@ -404,6 +404,28 @@ MAKEARGS_DEF bool _array_contains(const char* str,
 	return false;
 }
 
+MAKEARGS_DEF bool _makeargs_build_out(const char* output,
+																			const size_t deps_count,
+																			const char* const deps[])
+{
+	if (output[0] == '\0')
+	{
+		return true;
+	}
+
+	if (_stack_contains(output, makeargs_assumed_old, makeargs_assumed_old_count))
+	{
+		return false;
+	}
+
+	if (makeargs_always_run || makeargs_needs_rebuild(output, deps_count, deps))
+	{
+		return true;
+	}
+
+	return false;
+}
+
 MAKEARGS_DEF void _makeargs_build_deps(const size_t deps_count,
 																			 const char* const deps[])
 {
@@ -420,12 +442,9 @@ MAKEARGS_DEF void _makeargs_build_deps(const size_t deps_count,
 		__VA_OPT__(else if (MAKEARGS_FIRST(__VA_ARGS__)[0] != '\0' &&              \
 												MAKEARGS_STRCMP(deps[i],                               \
 																				MAKEARGS_FIRST(__VA_ARGS__)) == 0) {   \
-			if (!_stack_contains(MAKEARGS_FIRST(__VA_ARGS__), makeargs_assumed_old,  \
-													 makeargs_assumed_old_count) &&                      \
-					(makeargs_always_run ||                                              \
-					 makeargs_needs_rebuild(                                             \
-							 MAKEARGS_FIRST(__VA_ARGS__),                                    \
-							 MAKEARGS_PARAM_STR_ARRAY(MAKEARGS_REST(__VA_ARGS__)))))         \
+			if (_makeargs_build_out(                                                 \
+							MAKEARGS_FIRST(__VA_ARGS__),                                     \
+							MAKEARGS_PARAM_STR_ARRAY(MAKEARGS_REST(__VA_ARGS__))))           \
 			{                                                                        \
 				if (_first_##target)                                                   \
 				{                                                                      \
@@ -465,7 +484,7 @@ MAKEARGS_DEF void _makeargs_build_deps(const size_t deps_count,
 	}
 }
 
-MAKEARGS_DEF bool makeargs_needs_rebuild(char* output,
+MAKEARGS_DEF bool makeargs_needs_rebuild(const char* output,
 																				 const size_t deps_count,
 																				 const char* const deps[])
 {
@@ -627,16 +646,12 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv)
 		}
 #	define MAKEARGS_NO_REBUILD(target, ...) MAKEARGS_TARGET_CALL(target)
 
-#	define MAKEARGS_HAS_REBUILD(target, desc, output, ...)                      \
-		_makeargs_build_deps(MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__));               \
-                                                                               \
-		if ((output[0] == '\0' || !_stack_contains(output, makeargs_assumed_old,   \
-																							 makeargs_assumed_old_count)) && \
-				(makeargs_always_run ||                                                \
-				 makeargs_needs_rebuild(output,                                        \
-																MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))))       \
-		{                                                                          \
-			MAKEARGS_TARGET_CALL(target)                                             \
+#	define MAKEARGS_HAS_REBUILD(target, desc, output, ...)                   \
+		_makeargs_build_deps(MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__));            \
+                                                                            \
+		if (_makeargs_build_out(output, MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))) \
+		{                                                                       \
+			MAKEARGS_TARGET_CALL(target)                                          \
 		}
 
 #	define MAKEARGS_DISPATCH_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, \
