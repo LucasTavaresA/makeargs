@@ -1,12 +1,12 @@
 // tests if -o <file> is making exceptions properly, even with `-B` to always build
 #include "../../makeargs.c"
 
-#define MAKEARGS_TARGETS                                                  \
-	MAKEARGS_TARGET(all, "", "all.txt", "out1.txt", "out2.txt", "out3.txt") \
-	MAKEARGS_TARGET(out1, "", "out1.txt", "in1.txt")                        \
-	MAKEARGS_TARGET(out2, "", "out2.txt", "in2.txt")                        \
-	MAKEARGS_TARGET(out3, "", "out3.txt", "in3.txt")                        \
-	MAKEARGS_TARGET(snap, "outputs results from makeargs and make")         \
+#define MAKEARGS_TARGETS                                          \
+	MAKEARGS_TARGET(all, "", "all.txt", "out*.txt")                 \
+	MAKEARGS_TARGET(out1, "", "out1.txt", "in1.txt")                \
+	MAKEARGS_TARGET(out2, "", "out2.txt", "in2.txt")                \
+	MAKEARGS_TARGET(out3, "", "out3.txt", "in3.txt")                \
+	MAKEARGS_TARGET(snap, "outputs results from makeargs and make") \
 	MAKEARGS_TARGET(save, "saves output to expected")
 
 void all()

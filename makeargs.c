@@ -10,9 +10,12 @@
 
 #	ifdef _WIN32
 #		include <io.h>
+#		include <shlapi.h>
 #		define STAT_STRUCT _stat
 #		define STAT_FUNC _stat
 #	else
+#		include <fnmatch.h>
+#		include <glob.h>
 #		define STAT_STRUCT stat
 #		define STAT_FUNC stat
 #	endif
@@ -214,6 +217,16 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv);
 #		define MAKEARGS_STRCHR strchr
 #	endif
 
+#	ifndef MAKEARGS_GLOBMATCH
+#		if _WIN32
+#			define MAKEARGS_GLOBMATCH(pattern, file, flags) \
+				PathMatchSpecA(file, pattern)
+#		else
+#			define MAKEARGS_GLOBMATCH(pattern, file, flags) \
+				fnmatch(pattern, file, flags)
+#		endif
+#	endif
+
 #	ifndef MAKEARGS_STRCPY
 #		define MAKEARGS_STRCPY strcpy
 #	endif
@@ -408,6 +421,51 @@ MAKEARGS_DEF bool _array_contains(const char* str,
 	return false;
 }
 
+#	if _WIN32
+// TODO(LucasTA): glob support on windows
+typedef struct
+{
+	size_t gl_pathc;
+	char** gl_pathv;
+} glob_t;
+
+MAKEARGS_DEF glob_t _glob_from_strs(const size_t amount,
+																		const char* const* strs)
+{
+	for (size_t i = 0; i < amount; i++)
+	{
+		if (MAKEARGS_STRCHR(strs[i], '*') != NULL ||
+				MAKEARGS_STRCHR(strs[i], '?') != NULL ||
+				MAKEARGS_STRCHR(strs[i], '[') != NULL)
+		{
+			MAKEARGS_MSG(
+					"glob patterns not supported on Windows (found '%s'), always rebuilding the targets!\n",
+					strs[i]);
+			makeargs_always_run = true;
+			break;
+		}
+	}
+
+	return (glob_t){.gl_pathc = amount, .gl_pathv = (char**)strs};
+}
+
+#		define globfree(...)
+#	else
+MAKEARGS_DEF glob_t _glob_from_strs(const size_t amount,
+																		const char* const* strs)
+{
+	glob_t buf = {0};
+
+	for (size_t i = 0; i < amount; i++)
+	{
+		int flags = (i == 0) ? 0 : GLOB_APPEND;
+		glob(strs[i], flags | GLOB_TILDE | GLOB_NOCHECK | GLOB_NOSORT, NULL, &buf);
+	}
+
+	return buf;
+}
+#	endif
+
 MAKEARGS_DEF bool _makeargs_build_out(const char* output,
 																			const size_t deps_count,
 																			const char* const deps[])
@@ -423,12 +481,14 @@ MAKEARGS_DEF bool _makeargs_build_out(const char* output,
 		return false;
 	}
 
-	if (makeargs_always_run || makeargs_needs_rebuild(output, deps_count, deps))
-	{
-		return true;
-	}
+	glob_t glob = _glob_from_strs(deps_count, deps);
 
-	return false;
+	bool result = (makeargs_always_run ||
+								 makeargs_needs_rebuild(output, glob.gl_pathc,
+																				(const char* const*)glob.gl_pathv));
+
+	globfree(&glob);
+	return result;
 }
 
 MAKEARGS_DEF void _makeargs_build_deps(const size_t deps_count,
@@ -444,9 +504,9 @@ MAKEARGS_DEF void _makeargs_build_deps(const size_t deps_count,
 	{
 // NOTE(LucasTA): checked against '\0' to prevent "" output
 #	define MAKEARGS_OUTPUTS(target, description, ...)                           \
-		__VA_OPT__(else if (MAKEARGS_FIRST(__VA_ARGS__)[0] != '\0' &&              \
-												MAKEARGS_STRCMP(deps[i],                               \
-																				MAKEARGS_FIRST(__VA_ARGS__)) == 0) {   \
+		__VA_OPT__(if (MAKEARGS_FIRST(__VA_ARGS__)[0] != '\0' &&                   \
+									 MAKEARGS_GLOBMATCH(deps[i], MAKEARGS_FIRST(__VA_ARGS__),    \
+																			0) == 0) {                               \
 			if (_makeargs_build_out(                                                 \
 							MAKEARGS_FIRST(__VA_ARGS__),                                     \
 							MAKEARGS_PARAM_STR_ARRAY(MAKEARGS_REST(__VA_ARGS__))))           \
@@ -480,9 +540,6 @@ MAKEARGS_DEF void _makeargs_build_deps(const size_t deps_count,
 #	define MAKEARGS_TARGET(target, ...) \
 		__VA_OPT__(MAKEARGS_OUTPUTS(target, __VA_ARGS__))
 
-		if (0)
-		{
-		}
 		MAKEARGS_TARGETS
 #	undef MAKEARGS_TARGET
 #	undef MAKEARGS_OUTPUTS

@@ -1,0 +1,11 @@
+builds everything:
+builda()
+buildb()
+build()
+everything is built (does nothing):
+a.c was touched 😳:
+builda()
+build()
+b.c was touched 😳:
+buildb()
+build()
