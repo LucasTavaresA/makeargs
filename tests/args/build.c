@@ -2,6 +2,7 @@
 
 FILE* out;
 #define MAKEARGS_STDOUT out
+#define MAKEARGS_NOCOLOR 1
 
 #define MAKEARGS_TARGET_CALL(target) MAKEARGS_MSG(#target "()\n");
 #define MAKEARGS_IMPLEMENTATION

@@ -1,6 +1,7 @@
 // tests if -o <file> is making exceptions properly, even with `-B` to always build
 #include "../../makeargs.c"
 
+#define MAKEARGS_NOCOLOR 1
 #define MAKEARGS_TARGETS                                          \
 	MAKEARGS_TARGET(all, "", "all.txt", "out*.txt")                 \
 	MAKEARGS_TARGET(out1, "", "out1.txt", "in1.txt")                \

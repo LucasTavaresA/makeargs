@@ -1,5 +1,6 @@
 #include "../../makeargs.c"
 
+#define MAKEARGS_NOCOLOR 1
 #define MAKEARGS_TARGETS                     \
 	MAKEARGS_TARGET(builda, "", "a", "b")      \
 	MAKEARGS_TARGET(buildb, "", "b", "c")      \

@@ -12,6 +12,7 @@ Flags:
   -o|--assume-old <target>       never remake <target>
   -s|--silent|--quiet            Silent mode, don't print anything
   -W|--assume-new <target>       Act like <target> is new
+  --nocolor                      Removes colors from output
 1 <- makeargs_run_targets()
 1 <- makeargs_set_vars()
 --------------------------------------------------------------------------------

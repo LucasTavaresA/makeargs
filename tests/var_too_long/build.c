@@ -1,5 +1,6 @@
 #include "../../makeargs.c"
 
+#define MAKEARGS_NOCOLOR 1
 #define MAKEARGS_VAR_LENGTH 25
 #define OUT "output"
 #define MAKEARGS_TARGETS   \

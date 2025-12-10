@@ -6,6 +6,7 @@
 	"**/"   \
 	"*.o"
 
+#define MAKEARGS_NOCOLOR 1
 #define MAKEARGS_TARGETS                                  \
 	MAKEARGS_TARGET(builda, "", "folder/a.o", "folder/a.c") \
 	MAKEARGS_TARGET(buildb, "", "folder/b.o", "folder/b.c") \
