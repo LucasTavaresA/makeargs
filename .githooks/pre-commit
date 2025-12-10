@@ -1,13 +1,13 @@
 #!/bin/bash
 
-fail=0
+tmpdir=$(mktemp -d)
 
 (
 	if ! git clang-format --diff; then
 		printf "you forgot to run clang-format!\n"
 		exit 1
 	fi
-) &
+) > "$tmpdir/format.out" 2>&1 &
 format_pid=$!
 
 pids=()
@@ -15,28 +15,37 @@ pids=()
 for item in tests/*; do
 	if [ -d "$item" ]; then
 		(
+			outfile="$tmpdir/test_$BASHPID.out"
+			exec > "$outfile" 2>&1
 			cd "$item" || exit 1
 			cc -w -o build build.c || exit 1
-			./build || exit 1
+			./build snap || exit 1
 			if ! diff -q -s output expected; then
 				printf "the %s test failed!\n" "$item"
 				exit 1
 			fi
 		) &
-		pids+=($!)
+		pids+=("$!:$tmpdir/test_$!.out")
 	fi
 done
 
 # Wait for format check
 if ! wait $format_pid; then
-	fail=1
+	cat "$tmpdir/format.out"
+	rm -rf "$tmpdir"
+	exit 1
 fi
 
 # Wait for all tests
-for pid in "${pids[@]}"; do
+for entry in "${pids[@]}"; do
+	pid="${entry%%:*}"
+	outfile="${entry#*:}"
+
 	if ! wait $pid; then
-		fail=1
+		cat "$outfile"
+		rm -rf "$tmpdir"
+		exit 1
 	fi
 done
 
-exit $fail
+rm -rf "$tmpdir"

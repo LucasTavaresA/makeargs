@@ -1,6 +1,5 @@
 #include "../../makeargs.c"
 
-#define MAKEARGS_NOCOLOR 1
 #define MAKEARGS_VAR_LENGTH 25
 #define OUT "output"
 #define MAKEARGS_TARGETS   \
@@ -66,13 +65,8 @@ void save()
 
 int main(const int argc, const char** argv)
 {
+	makeargs_nocolor = 1;
 	makeargs_set("self", argv[0]);
-
-	if (argc == 1)
-	{
-		snap();
-		exit(0);
-	}
 
 	makeargs_run_targets(argc, argv);
 	return 0;

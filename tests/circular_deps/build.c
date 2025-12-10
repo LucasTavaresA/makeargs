@@ -1,6 +1,5 @@
 #include "../../makeargs.c"
 
-#define MAKEARGS_NOCOLOR 1
 #define MAKEARGS_TARGETS                     \
 	MAKEARGS_TARGET(builda, "", "a", "b")      \
 	MAKEARGS_TARGET(buildb, "", "b", "c")      \
@@ -51,13 +50,8 @@ void save()
 
 int main(const int argc, const char** argv)
 {
+	makeargs_nocolor = 1;
 	makeargs_set("self", argv[0]);
-
-	if (argc == 1)
-	{
-		snap();
-		exit(0);
-	}
 
 	MAKEARGS(argc, argv);
 	return 0;

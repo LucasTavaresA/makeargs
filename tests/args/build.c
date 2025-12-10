@@ -2,7 +2,6 @@
 
 FILE* out;
 #define MAKEARGS_STDOUT out
-#define MAKEARGS_NOCOLOR 1
 
 #define MAKEARGS_TARGET_CALL(target) MAKEARGS_MSG(#target "()\n");
 #define MAKEARGS_IMPLEMENTATION
@@ -71,6 +70,8 @@ void print_array(const size_t size, const char* const array[])
 
 int main(int argc, const char** argv)
 {
+	makeargs_nocolor = 1;
+
 	if (argc > 1 && strcmp(argv[1], "save") == 0)
 	{
 		out = fopen("expected", "w");

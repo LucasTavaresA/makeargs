@@ -1,7 +1,6 @@
 // tests if -o <file> is making exceptions properly, even with `-B` to always build
 #include "../../makeargs.c"
 
-#define MAKEARGS_NOCOLOR 1
 #define MAKEARGS_TARGETS                                          \
 	MAKEARGS_TARGET(all, "", "all.txt", "out*.txt")                 \
 	MAKEARGS_TARGET(out1, "", "out1.txt", "in1.txt")                \
@@ -81,13 +80,8 @@ void save()
 
 int main(const int argc, const char** argv)
 {
+	makeargs_nocolor = 1;
 	makeargs_set("self", argv[0]);
-
-	if (argc == 1)
-	{
-		snap();
-		exit(0);
-	}
 
 	MAKEARGS(argc, argv);
 	return 0;
