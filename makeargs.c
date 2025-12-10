@@ -407,6 +407,11 @@ MAKEARGS_DEF void makeargs_getenv(void)
 	for (char** env = MAKEARGS_ENVIRON; *env != NULL; env++)
 	{
 		makeargs_set_from_var(*env);
+
+		if (MAKEARGS_STRCMP(*env, "NO_COLOR=1") == 0)
+		{
+			makeargs_nocolor = true;
+		}
 	}
 }
 
