@@ -15,8 +15,8 @@
 #			pragma comment(lib, "Shlwapi.lib")
 #			define _Static_assert static_assert
 #		endif
-#		define STAT_STRUCT _stat
-#		define STAT_FUNC _stat
+#		define STAT_STRUCT __stat64
+#		define STAT_FUNC _stat64
 #	else
 #		include <fnmatch.h>
 #		include <glob.h>
