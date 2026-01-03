@@ -1,2 +1,6 @@
 build
 main
+*.exe
+*.out
+*.obj
+.vs

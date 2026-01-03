@@ -7,7 +7,7 @@ Makefile-like single-header library for building projects with C.
 - **Dependency solving**: Solves and rebuilds old targets based on input/output chains, supports glob patterns
 - **Variable management**: Set, get, and override variables from environment, command-line, or C code
 - **Command-line flags**: Support for dry-run, always-run, other make flags, and customizable flags
-- **Cross-platform**: Works on linux, didn't test but should work on Windows ⚠️
+- **Cross-platform**: Works on linux and windows
 
 ## Usage
 
@@ -25,7 +25,7 @@ All tests are run in the same way:
 ```sh
 # assuming you are in a test folder
 gcc -o build build.c
-./build # show diff from expected output
+./build snap # show diff from expected output
 ./build save # saves output to expected
 ```
 

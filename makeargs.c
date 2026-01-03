@@ -10,7 +10,11 @@
 
 #	ifdef _WIN32
 #		include <io.h>
-#		include <shlapi.h>
+#		include <shlwapi.h>
+#		ifdef _MSC_VER
+#			pragma comment(lib, "Shlwapi.lib")
+#			define _Static_assert static_assert
+#		endif
 #		define STAT_STRUCT _stat
 #		define STAT_FUNC _stat
 #	else
@@ -271,7 +275,7 @@ extern char** environ;
 
 /// maximum length of a variable name or value
 #	ifndef MAKEARGS_VAR_LENGTH
-#		define MAKEARGS_VAR_LENGTH 1024
+#		define MAKEARGS_VAR_LENGTH 4096
 #	endif
 
 static struct
