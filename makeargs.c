@@ -37,10 +37,10 @@ MAKEARGS_DEF void makeargs_help(const char* argv0);
 /// halts if the variable is not found.
 MAKEARGS_DEF char* makeargs_get(const char* name);
 
-/// appends a to a variable.
+/// appends a to a variable, also returns its pointer.
 /// halts if the variable is not found.
 /// halts if the appended variable is too long.
-MAKEARGS_DEF void makeargs_append(const char* name, const char* suffix);
+MAKEARGS_DEF char* makeargs_append(const char* name, const char* suffix);
 
 /// sets a variable.
 /// halts if you have too many variables.
@@ -343,7 +343,7 @@ MAKEARGS_DEF char* makeargs_get(const char* name)
 								name);
 }
 
-MAKEARGS_DEF void makeargs_append(const char* name, const char* suffix)
+MAKEARGS_DEF char* makeargs_append(const char* name, const char* suffix)
 {
 	char* value = makeargs_get(name);
 	size_t value_len = MAKEARGS_STRLEN(value);
@@ -355,6 +355,8 @@ MAKEARGS_DEF void makeargs_append(const char* name, const char* suffix)
 			name, value, suffix, __func__);
 
 	MAKEARGS_STRCPY(value + value_len, suffix);
+
+	return value;
 }
 
 MAKEARGS_DEF void makeargs_set(const char* name, const char* value)
