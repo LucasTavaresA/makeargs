@@ -4,3 +4,10 @@ If:
 CompileFlags:
   Add:
     - -DMAKEARGS_IMPLEMENTATION
+    - -Wall
+    - -Wextra
+    - -pedantic
+    - -Wshadow
+    - -Wno-unused-function
+    - -Wno-gnu-zero-variadic-macro-arguments
+    - -std=c99

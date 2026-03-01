@@ -1,3 +1,4 @@
+// TODO(LucasTA): Remove all usages of __VA_ARGS__ to better support ISO C99
 #ifndef MAKEARGS_FREESTANDING
 #	include <stdio.h>
 #	include <stdlib.h>
