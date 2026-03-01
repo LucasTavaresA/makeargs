@@ -1,17 +1,12 @@
 #include <unistd.h>
+
+#define MAKEARGS_IMPLEMENTATION
 #include "../../makeargs.c"
 
 // NOTE(LucasTA): separated cause tree-sitter thinks globs are a comment
-#define O \
-	"**/"   \
+#define O_FILES \
+	"**/"         \
 	"*.o"
-
-#define MAKEARGS_TARGETS                                  \
-	MAKEARGS_TARGET(builda, "", "folder/a.o", "folder/a.c") \
-	MAKEARGS_TARGET(buildb, "", "folder/b.o", "folder/b.c") \
-	MAKEARGS_TARGET(build, "", "main", O)                   \
-	MAKEARGS_TARGET(snap)                                   \
-	MAKEARGS_TARGET(save)
 
 void builda()
 {
@@ -33,7 +28,7 @@ void build()
 
 void snap()
 {
-	system("rm -f " O " main " OUT);
+	system("rm -f " O_FILES " main " OUT);
 	system("touch " OUT);
 
 	{
@@ -81,11 +76,15 @@ void save()
 	system("cp " OUT " expected");
 }
 
-#define MAKEARGS_IMPLEMENTATION
-#include "../../makeargs.c"
-
 int main(const int argc, const char** argv)
 {
+	makeargs_add_target(builda, .output = "folder/a.o",
+											MAKEARGS_DEPS("folder/a.c"));
+	makeargs_add_target(buildb, .output = "folder/b.o",
+											MAKEARGS_DEPS("folder/b.c"));
+	makeargs_add_target(build, .output = "main", MAKEARGS_DEPS(O_FILES));
+	makeargs_add_target(snap);
+	makeargs_add_target(save);
 	makeargs_nocolor = 1;
 	makeargs_set("self", argv[0]);
 

@@ -1,11 +1,5 @@
+#define MAKEARGS_IMPLEMENTATION
 #include "../../makeargs.c"
-
-#define MAKEARGS_TARGETS                     \
-	MAKEARGS_TARGET(builda, "", "a", "b")      \
-	MAKEARGS_TARGET(buildb, "", "b", "c")      \
-	MAKEARGS_TARGET(buildc, "", "c", "a")      \
-	MAKEARGS_TARGET(snap, "saves test output") \
-	MAKEARGS_TARGET(save, "saves output to expected")
 
 void builda() {}
 void buildb() {}
@@ -45,11 +39,13 @@ void save()
 	system("cp " OUT " expected");
 }
 
-#define MAKEARGS_IMPLEMENTATION
-#include "../../makeargs.c"
-
 int main(const int argc, const char** argv)
 {
+	makeargs_add_target(builda, .output = "a", MAKEARGS_DEPS("b"));
+	makeargs_add_target(buildb, .output = "b", MAKEARGS_DEPS("c"));
+	makeargs_add_target(buildc, .output = "c", MAKEARGS_DEPS("a"));
+	makeargs_add_target(snap, .description = "saves test output");
+	makeargs_add_target(save, .description = "saves output to expected");
 	makeargs_nocolor = 1;
 	makeargs_set("self", argv[0]);
 

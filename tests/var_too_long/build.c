@@ -1,13 +1,8 @@
-#include "../../makeargs.c"
-
 #define MAKEARGS_VAR_LENGTH 25
 #define OUT "output"
-#define MAKEARGS_TARGETS   \
-	MAKEARGS_TARGET(append)  \
-	MAKEARGS_TARGET(setval)  \
-	MAKEARGS_TARGET(setname) \
-	MAKEARGS_TARGET(snap)    \
-	MAKEARGS_TARGET(save)
+
+#define MAKEARGS_IMPLEMENTATION
+#include "../../makeargs.c"
 
 void append()
 {
@@ -60,11 +55,13 @@ void save()
 	system("cp " OUT " expected");
 }
 
-#define MAKEARGS_IMPLEMENTATION
-#include "../../makeargs.c"
-
 int main(const int argc, const char** argv)
 {
+	makeargs_add_target(append);
+	makeargs_add_target(setval);
+	makeargs_add_target(setname);
+	makeargs_add_target(snap);
+	makeargs_add_target(save);
 	makeargs_nocolor = 1;
 	makeargs_set("self", argv[0]);
 

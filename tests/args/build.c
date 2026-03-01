@@ -3,14 +3,8 @@
 FILE* out;
 #define MAKEARGS_STDOUT out
 
-#define MAKEARGS_TARGET_CALL(target) MAKEARGS_MSG(#target "()\n");
+#define MAKEARGS_TARGET_CALL(target) MAKEARGS_MSG("%s()\n", (target)->name);
 #define MAKEARGS_IMPLEMENTATION
-#define MAKEARGS_TARGETS                                              \
-	MAKEARGS_TARGET(empty)                                              \
-	MAKEARGS_TARGET(desc, "has a description")                          \
-	MAKEARGS_TARGET(nodesc, "")                                         \
-	MAKEARGS_TARGET(build, "builds main", "main", "main.c", "common.c") \
-	MAKEARGS_TARGET(run, "calls build", "", "main")
 #include "../../makeargs.c"
 
 #define SEPARATOR \
@@ -27,6 +21,12 @@ typedef struct
 	const size_t size;
 	const char* const* str;
 } str_array_t;
+
+void empty() {}
+void desc() {}
+void nodesc() {}
+void build() {}
+void run() {}
 
 const str_array_t test_args[] = {
 		STR_ARRAY("./test"),
@@ -70,6 +70,12 @@ void print_array(const size_t size, const char* const array[])
 
 int main(int argc, const char** argv)
 {
+	makeargs_add_target(empty);
+	makeargs_add_target(desc, .description = "has a description");
+	makeargs_add_target(nodesc);
+	makeargs_add_target(build, .description = "builds main", .output = "main",
+											MAKEARGS_DEPS("main.c", "common.c"));
+	makeargs_add_target(run, .description = "calls build", MAKEARGS_DEPS("main"));
 	makeargs_nocolor = 1;
 
 	if (argc > 1 && strcmp(argv[1], "save") == 0)

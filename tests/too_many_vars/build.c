@@ -1,10 +1,8 @@
+#define MAKEARGS_MAX_VARS 3
+#define MAKEARGS_IMPLEMENTATION
 #include "../../makeargs.c"
 
-#define MAKEARGS_MAX_VARS 3
 #define OUT "output"
-#define MAKEARGS_TARGETS \
-	MAKEARGS_TARGET(snap)  \
-	MAKEARGS_TARGET(save)
 
 void snap()
 {
@@ -23,11 +21,10 @@ void save()
 	system("cp " OUT " expected");
 }
 
-#define MAKEARGS_IMPLEMENTATION
-#include "../../makeargs.c"
-
 int main(const int argc, const char** argv)
 {
+	makeargs_add_target(snap);
+	makeargs_add_target(save);
 	makeargs_nocolor = 1;
 	makeargs_set("self", argv[0]);
 

@@ -1,13 +1,6 @@
 // tests if -o <file> is making exceptions properly, even with `-B` to always build
+#define MAKEARGS_IMPLEMENTATION
 #include "../../makeargs.c"
-
-#define MAKEARGS_TARGETS                                          \
-	MAKEARGS_TARGET(all, "", "all.txt", "out*.txt")                 \
-	MAKEARGS_TARGET(out1, "", "out1.txt", "in1.txt")                \
-	MAKEARGS_TARGET(out2, "", "out2.txt", "in2.txt")                \
-	MAKEARGS_TARGET(out3, "", "out3.txt", "in3.txt")                \
-	MAKEARGS_TARGET(snap, "outputs results from makeargs and make") \
-	MAKEARGS_TARGET(save, "saves output to expected")
 
 void all()
 {
@@ -75,11 +68,15 @@ void save()
 	system("cp " OUT " expected");
 }
 
-#define MAKEARGS_IMPLEMENTATION
-#include "../../makeargs.c"
-
 int main(const int argc, const char** argv)
 {
+	makeargs_add_target(all, .output = "all.txt", MAKEARGS_DEPS("out*.txt"));
+	makeargs_add_target(out1, .output = "out1.txt", MAKEARGS_DEPS("in1.txt"));
+	makeargs_add_target(out2, .output = "out2.txt", MAKEARGS_DEPS("in2.txt"));
+	makeargs_add_target(out3, .output = "out3.txt", MAKEARGS_DEPS("in3.txt"));
+	makeargs_add_target(snap,
+											.description = "outputs results from makeargs and make");
+	makeargs_add_target(save, .description = "saves output to expected");
 	makeargs_nocolor = 1;
 	makeargs_set("self", argv[0]);
 

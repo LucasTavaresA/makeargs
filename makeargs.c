@@ -30,7 +30,7 @@
 #endif
 
 /// prints the help message.
-/// generated based on your MAKEARGS_TARGETS.
+/// lists all targets and their description.
 MAKEARGS_DEF void makeargs_help(const char* argv0);
 
 /// returns the value of a variable.
@@ -81,23 +81,60 @@ MAKEARGS_DEF size_t makeargs_set_vars(const size_t argc, const char** argv);
 /// returns the last index or the index after MAKEARGS_SEPARATOR.
 MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv);
 
+#ifdef __clang__
+#	define _MAKEARGS_IGNORE_INIT_OVERRIDES(...)                         \
+		do                                                                 \
+		{                                                                  \
+			_Pragma("clang diagnostic push");                                \
+			_Pragma("clang diagnostic ignored \"-Winitializer-overrides\""); \
+			__VA_ARGS__;                                                     \
+			_Pragma("clang diagnostic pop");                                 \
+		} while (0)
+#elif defined(__GNUC__)
+#	define _MAKEARGS_IGNORE_INIT_OVERRIDES(...)               \
+		do                                                       \
+		{                                                        \
+			_Pragma("GCC diagnostic push");                        \
+			_Pragma("GCC diagnostic ignored \"-Woverride-init\""); \
+			__VA_ARGS__;                                           \
+			_Pragma("GCC diagnostic pop");                         \
+		} while (0)
+#else
+#	define _MAKEARGS_IGNORE_INIT_OVERRIDES(...) __VA_ARGS__
+#endif
+
+/// Adds a target.
+/// First argument is the target function.
+/// The rest is put inside a compound literal to construct a _makeargs_target_t.
+///
+/// You can override the default values like this:
+///
+/// makeargs_add_target(target_func, .output = "foo.o", .description = "bar").
+#define makeargs_add_target(target, ...)                            \
+	_MAKEARGS_IGNORE_INIT_OVERRIDES(                                  \
+			_makeargs_add_target((_makeargs_target_t){.name = #target,    \
+																								.function = target, \
+																								.description = "",  \
+																								.output = "",       \
+																								.deps_count = 0,    \
+																								.deps = {NULL},     \
+																								._visited = false,  \
+																								__VA_ARGS__}))
+
 #ifdef MAKEARGS_IMPLEMENTATION
 /// makeargs will stop parsing at this separator
 #	ifndef MAKEARGS_SEPARATOR
 #		define MAKEARGS_SEPARATOR "--"
 #	endif
 
-/// function to call when no target is specified or when a unknown target is specified
-/// by default prints a message based on your MAKEARGS_TARGETS
+/// function to call when no target is specified or when a unknown target is specified.
 #	ifndef MAKEARGS_DEFAULT_TARGET
 #		define MAKEARGS_DEFAULT_TARGET makeargs_help
 #	endif
 
-/// an X macro list of all your targets
-/// name is required, the rest is optional, you can have 10 dependencies
-/// MAKEARGS_TARGET(name, description, output, dependencies...)
-#	ifndef MAKEARGS_TARGETS
-#		define MAKEARGS_TARGETS
+/// MAKEARGS_TARGETS is deprecated, use makeargs_add_target() instead
+#	ifdef MAKEARGS_TARGETS
+#		error "MAKEARGS_TARGETS is deprecated, use makeargs_add_target() instead"
 #	endif
 
 /// an X macro list of flags
@@ -214,10 +251,10 @@ static bool makeargs_nocolor = false;
 
 /// how the targets will be called
 #	ifndef MAKEARGS_TARGET_CALL
-#		define MAKEARGS_TARGET_CALL(target) \
-			MAKEARGS_MSG("%s()\n", #target);   \
-			if (!makeargs_dry_run)             \
-				target();
+#		define MAKEARGS_TARGET_CALL(target)      \
+			MAKEARGS_MSG("%s()\n", (target)->name); \
+			if (!makeargs_dry_run)                  \
+				(target)->function();
 #	endif
 
 #	ifndef MAKEARGS
@@ -296,22 +333,60 @@ static bool makeargs_dry_run = false;
 static bool makeargs_always_run = false;
 static bool makeargs_silent = false;
 
+typedef struct
+{
+	const char* name;
+	void (*function)(void);
+	const char* description;
+	const char* output;
+	size_t deps_count;
+	const char* deps[MAKEARGS_MAX_VARS];
+	bool _visited;
+} _makeargs_target_t;
+
+/// Helper macro to define dependencies inside makeargs_add_target().
+#	define MAKEARGS_DEPS(...)                                             \
+		.deps_count = MAKEARGS_ARGS_ARRAY_COUNTOF(const char*, __VA_ARGS__), \
+		.deps = {__VA_ARGS__}
+
+static _makeargs_target_t _makeargs_targets[MAKEARGS_MAX_VARS];
+static size_t _makeargs_targets_count = 0;
+
+MAKEARGS_DEF void _makeargs_add_target(_makeargs_target_t target)
+{
+	MAKEARGS_ASSERT(
+			MAKEARGS_EXIT_CONFIG, _makeargs_targets_count < MAKEARGS_MAX_VARS,
+			"%s: too many targets, increase MAKEARGS_MAX_VARS!", __func__);
+
+	for (size_t i = 0; i < _makeargs_targets_count; i++)
+	{
+		MAKEARGS_ASSERT(
+				MAKEARGS_EXIT_CONFIG,
+				MAKEARGS_STRCMP(_makeargs_targets[i].name, target.name) != 0,
+				"%s: target '%s' is already defined!", __func__, target.name);
+	}
+
+	_makeargs_targets[_makeargs_targets_count++] = target;
+}
+
 MAKEARGS_DEF void makeargs_help(const char* argv0)
 {
 	MAKEARGS_MSG("Usage: %s [", argv0);
 	const char* sep = "";
-#	define MAKEARGS_TARGET(target, ...) \
-		MAKEARGS_MSG("%s" #target, sep);   \
+
+	for (size_t i = 0; i < _makeargs_targets_count; i++)
+	{
+		MAKEARGS_MSG("%s%s", sep, _makeargs_targets[i].name);
 		sep = "|";
-	MAKEARGS_TARGETS
-#	undef MAKEARGS_TARGET
+	}
+
 	MAKEARGS_MSG("]\n");
 
-#	define MAKEARGS_TARGET(target, ...) \
-		MAKEARGS_MSG("  %-30s %s\n", #target, MAKEARGS_FIRST(__VA_ARGS__) "");
-
-	MAKEARGS_TARGETS
-#	undef MAKEARGS_TARGET
+	for (size_t i = 0; i < _makeargs_targets_count; i++)
+	{
+		MAKEARGS_MSG("  %-30s %s\n", _makeargs_targets[i].name,
+								 _makeargs_targets[i].description);
+	}
 
 	MAKEARGS_MSG("\nFlags:\n");
 #	define MAKEARGS_FLAG_DESCRIBE(description, usage) \
@@ -528,57 +603,49 @@ MAKEARGS_DEF void _makeargs_build_deps(const size_t deps_count,
 {
 	static const char* makeargs_deps_stack[MAKEARGS_MAX_VARS];
 	static size_t makeargs_deps_depth = 0;
-#	define MAKEARGS_TARGET(target, ...) static bool _first_##target = false;
-	MAKEARGS_TARGETS
-#	undef MAKEARGS_TARGET
 
 	for (size_t i = 0; i < deps_count; ++i)
 	{
-// NOTE(LucasTA): checked against '\0' to prevent "" output
-#	define MAKEARGS_OUTPUTS(target, description, ...)                         \
-		__VA_OPT__(if (MAKEARGS_FIRST(__VA_ARGS__)[0] != '\0' &&                 \
-									 MAKEARGS_GLOBMATCH(deps[i], MAKEARGS_FIRST(__VA_ARGS__),  \
-																			0) == 0) {                             \
-			if (_makeargs_build_out(                                               \
-							MAKEARGS_FIRST(__VA_ARGS__),                                   \
-							MAKEARGS_PARAM_STR_ARRAY(MAKEARGS_REST(__VA_ARGS__))))         \
-			{                                                                      \
-				if (_first_##target)                                                 \
-				{                                                                    \
-					MAKEARGS_PRINT(MAKEARGS_STDERR,                                    \
-												 MAKEARGS_COLOR_STR(                                 \
-														 MAKEARGS_TERM_RED,                              \
-														 "%s: Attempt to build circular dependency!\n"), \
-												 __func__);                                          \
-					for (size_t j = 0; j < makeargs_deps_depth; j++)                   \
-						MAKEARGS_PRINT(MAKEARGS_STDERR,                                  \
-													 MAKEARGS_COLOR_STR(MAKEARGS_TERM_RED, "%s -> "),  \
-													 makeargs_deps_stack[j]);                          \
-					MAKEARGS_HALT(MAKEARGS_EXIT_CONFIG, "%s",                          \
-												MAKEARGS_FIRST(__VA_ARGS__));                        \
-				}                                                                    \
-                                                                             \
-				_first_##target = true;                                              \
-				MAKEARGS_ASSERT(                                                     \
-						MAKEARGS_EXIT_CONFIG, makeargs_deps_depth < MAKEARGS_MAX_VARS,   \
-						"%s: dependency stack overflow - too many nested dependencies!", \
-						__func__);                                                       \
-				makeargs_deps_stack[makeargs_deps_depth++] =                         \
-						MAKEARGS_FIRST(__VA_ARGS__);                                     \
-				_makeargs_build_deps(                                                \
-						MAKEARGS_PARAM_STR_ARRAY(MAKEARGS_REST(__VA_ARGS__)));           \
-				MAKEARGS_TARGET_CALL(target)                                         \
-				makeargs_deps_depth--;                                               \
-				_first_##target = false;                                             \
-			}                                                                      \
-		})
+		for (size_t j = 0; j < _makeargs_targets_count; ++j)
+		{
+			_makeargs_target_t* t = &_makeargs_targets[j];
 
-#	define MAKEARGS_TARGET(target, ...) \
-		__VA_OPT__(MAKEARGS_OUTPUTS(target, __VA_ARGS__))
+			if (t->output[0] == '\0' ||
+					MAKEARGS_GLOBMATCH(deps[i], t->output, 0) != 0 ||
+					!_makeargs_build_out(t->output, t->deps_count, t->deps))
+			{
+				continue;
+			}
 
-		MAKEARGS_TARGETS
-#	undef MAKEARGS_TARGET
-#	undef MAKEARGS_OUTPUTS
+			if (t->_visited)
+			{
+				MAKEARGS_PRINT(
+						MAKEARGS_STDERR,
+						MAKEARGS_COLOR_STR(MAKEARGS_TERM_RED,
+															 "%s: Attempt to build circular dependency!\n"),
+						__func__);
+
+				for (size_t k = 0; k < makeargs_deps_depth; k++)
+				{
+					MAKEARGS_PRINT(MAKEARGS_STDERR,
+												 MAKEARGS_COLOR_STR(MAKEARGS_TERM_RED, "%s -> "),
+												 makeargs_deps_stack[k]);
+				}
+
+				MAKEARGS_HALT(MAKEARGS_EXIT_CONFIG, "%s", t->output);
+			}
+
+			t->_visited = true;
+			MAKEARGS_ASSERT(
+					MAKEARGS_EXIT_CONFIG, makeargs_deps_depth < MAKEARGS_MAX_VARS,
+					"%s: too many nested dependencies, increase MAKEARGS_MAX_VARS!",
+					__func__);
+			makeargs_deps_stack[makeargs_deps_depth++] = t->output;
+			_makeargs_build_deps(t->deps_count, t->deps);
+			MAKEARGS_TARGET_CALL(t)
+			makeargs_deps_depth--;
+			t->_visited = false;
+		}
 	}
 }
 
@@ -744,36 +811,32 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv)
 			i++;
 			continue;
 		}
-#	define MAKEARGS_NO_REBUILD(target, ...) MAKEARGS_TARGET_CALL(target)
 
-#	define MAKEARGS_HAS_REBUILD(target, desc, output, ...)                   \
-		_makeargs_build_deps(MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__));            \
-                                                                            \
-		if (_makeargs_build_out(output, MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))) \
-		{                                                                       \
-			MAKEARGS_TARGET_CALL(target)                                          \
+		bool found = false;
+
+		for (size_t j = 0; j < _makeargs_targets_count; ++j)
+		{
+			_makeargs_target_t* t = &_makeargs_targets[j];
+
+			if (MAKEARGS_STRCMP(argv[i], t->name) != 0)
+			{
+				continue;
+			}
+
+			found = true;
+
+			_makeargs_build_deps(t->deps_count, t->deps);
+
+			if (t->output[0] == '\0' ||
+					_makeargs_build_out(t->output, t->deps_count, t->deps))
+			{
+				MAKEARGS_TARGET_CALL(t)
+			}
+
+			break;
 		}
 
-#	define MAKEARGS_DISPATCH_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, \
-																 _12, N, ...)                                  \
-		MAKEARGS_##N##_REBUILD
-#	define MAKEARGS_DISPATCH(...)                                           \
-		MAKEARGS_DISPATCH_IMPL(__VA_ARGS__, HAS, HAS, HAS, HAS, HAS, HAS, HAS, \
-													 HAS, HAS, HAS, NO, NO)
-
-#	define MAKEARGS_TARGET(target, ...)                         \
-		else if (MAKEARGS_STRCMP(argv[i], #target) == 0)           \
-		{                                                          \
-			MAKEARGS_DISPATCH(__VA_ARGS__)(target, __VA_ARGS__) i++; \
-		}
-
-		MAKEARGS_TARGETS
-#	undef MAKEARGS_TARGET
-#	undef MAKEARGS_DISPATCH
-#	undef MAKEARGS_DISPATCH_IMPL
-#	undef MAKEARGS_HAS_REBUILD
-#	undef MAKEARGS_NO_REBUILD
-		else
+		if (!found)
 		{
 			MAKEARGS_PRINT(
 					MAKEARGS_STDERR,
@@ -782,6 +845,8 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv)
 			MAKEARGS_DEFAULT_TARGET(argv[0]);
 			MAKEARGS_EXIT(MAKEARGS_EXIT_USAGE);
 		}
+
+		i++;
 	}
 
 	return i;
