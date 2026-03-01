@@ -34,6 +34,9 @@
 /// lists all targets and their description.
 MAKEARGS_DEF void makeargs_help(const char* argv0);
 
+/// Lists all targets and their information.
+MAKEARGS_DEF void makeargs_list(void);
+
 /// returns the value of a variable.
 /// halts if the variable is not found.
 MAKEARGS_DEF char* makeargs_get(const char* name);
@@ -139,6 +142,7 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv);
 #	endif
 
 /// an X macro list of flags
+/// MAKEARGS_FLAG_FUNC(func, description, usage, flags...)
 /// MAKEARGS_FLAG_BOOL(var, description, usage, flags...)
 /// MAKEARGS_FLAG_LIST(list, description, usage, flags...)
 #	ifndef MAKEARGS_FLAGS
@@ -153,11 +157,15 @@ MAKEARGS_DEF size_t makeargs_run_targets(const size_t argc, const char** argv);
 												 "-s|--silent|--quiet", "-s", "--silent", "--quiet")   \
 			MAKEARGS_FLAG_LIST(makeargs_assumed_new, "Act like <target> is new",     \
 												 "-W|--assume-new <target>", "-W", "--assume-new")     \
+			MAKEARGS_FLAG_FUNC(makeargs_list,                                        \
+												 "List all targets and their information",             \
+												 "-l|--list", "-l", "--list")                          \
 			MAKEARGS_FLAG_BOOL(makeargs_nocolor, "Removes colors from output",       \
 												 "--nocolor", "--nocolor")
 #	endif
 
 /// an X macro list for additional flags
+/// MAKEARGS_FLAG_FUNC(func, description, usage, flags...)
 /// MAKEARGS_FLAG_BOOL(var, description, usage, flags...)
 /// MAKEARGS_FLAG_LIST(list, description, usage, flags...)
 #	ifndef MAKEARGS_CUSTOM_FLAGS
@@ -397,12 +405,47 @@ MAKEARGS_DEF void makeargs_help(const char* argv0)
 		MAKEARGS_FLAG_DESCRIBE(description, usage)
 #	define MAKEARGS_FLAG_BOOL(_, description, usage, ...) \
 		MAKEARGS_FLAG_DESCRIBE(description, usage)
+#	define MAKEARGS_FLAG_FUNC(_, description, usage, ...) \
+		MAKEARGS_FLAG_DESCRIBE(description, usage)
 
 	MAKEARGS_FLAGS
 	MAKEARGS_CUSTOM_FLAGS
+#	undef MAKEARGS_FLAG_FUNC
 #	undef MAKEARGS_FLAG_BOOL
 #	undef MAKEARGS_FLAG_LIST
 #	undef MAKEARGS_FLAG_DESCRIBE
+}
+
+MAKEARGS_DEF void makeargs_list(void)
+{
+	for (size_t i = 0; i < _makeargs_targets_count; i++)
+	{
+		_makeargs_target_t* t = &_makeargs_targets[i];
+		MAKEARGS_MSG("%s:\n", t->name);
+
+		if (t->description != NULL && t->description[0] != '\0')
+		{
+			MAKEARGS_MSG("  Description: %s\n", t->description);
+		}
+
+		if (t->output != NULL && t->output[0] != '\0')
+		{
+			MAKEARGS_MSG("  Output: %s\n", t->output);
+		}
+
+		if (t->deps_count > 0)
+		{
+			MAKEARGS_MSG("  Dependencies: ");
+			for (size_t j = 0; j < t->deps_count; j++)
+			{
+				MAKEARGS_MSG("%s ", t->deps[j]);
+			}
+			MAKEARGS_MSG("\n");
+		}
+		MAKEARGS_MSG("\n");
+	}
+
+	MAKEARGS_EXIT(MAKEARGS_EXIT_OK);
 }
 
 MAKEARGS_DEF char* makeargs_get(const char* name)
@@ -694,6 +737,7 @@ MAKEARGS_DEF bool makeargs_needs_rebuild(const char* output,
 MAKEARGS_DEF void _makeargs_skip_if_list_flag(const char** argv, size_t* i)
 {
 #	define MAKEARGS_FLAG_BOOL(...)
+#	define MAKEARGS_FLAG_FUNC(...)
 #	define MAKEARGS_FLAG_LIST(list, description, usage, ...)                    \
 		else if (_array_contains(argv[*i], MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))) \
 		{                                                                          \
@@ -706,6 +750,7 @@ MAKEARGS_DEF void _makeargs_skip_if_list_flag(const char** argv, size_t* i)
 	MAKEARGS_FLAGS
 	MAKEARGS_CUSTOM_FLAGS
 #	undef MAKEARGS_FLAG_BOOL
+#	undef MAKEARGS_FLAG_FUNC
 #	undef MAKEARGS_FLAG_LIST
 }
 
@@ -724,6 +769,11 @@ MAKEARGS_DEF size_t makeargs_set_flags(const size_t argc, const char** argv)
 		{
 			MAKEARGS_DEFAULT_TARGET(argv[0]);
 			MAKEARGS_EXIT(MAKEARGS_EXIT_OK);
+		}
+#	define MAKEARGS_FLAG_FUNC(func, description, _, ...)                       \
+		else if (_array_contains(argv[i], MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))) \
+		{                                                                         \
+			makeargs_list();                                                        \
 		}
 #	define MAKEARGS_FLAG_BOOL(var, description, _, ...)                        \
 		else if (_array_contains(argv[i], MAKEARGS_PARAM_STR_ARRAY(__VA_ARGS__))) \
@@ -755,6 +805,7 @@ MAKEARGS_DEF size_t makeargs_set_flags(const size_t argc, const char** argv)
 			MAKEARGS_EXIT(MAKEARGS_EXIT_USAGE);
 		}
 #	undef MAKEARGS_FLAG_BOOL
+#	undef MAKEARGS_FLAG_FUNC
 #	undef MAKEARGS_FLAG_LIST
 		i++;
 	}

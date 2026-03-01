@@ -9,4 +9,5 @@ Flags:
   -o|--assume-old <target>       never remake <target>
   -s|--silent|--quiet            Silent mode, don't print anything
   -W|--assume-new <target>       Act like <target> is new
+  -l|--list                      List all targets and their information
   --nocolor                      Removes colors from output
