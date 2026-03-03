@@ -6,8 +6,7 @@ CompileFlags:
     - -DMAKEARGS_IMPLEMENTATION
     - -Wall
     - -Wextra
-    - -pedantic
+    - -pedantic-errors
     - -Wshadow
     - -Wno-unused-function
-    - -Wno-gnu-zero-variadic-macro-arguments
     - -std=c99

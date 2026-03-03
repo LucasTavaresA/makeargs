@@ -1,12 +1,12 @@
 #define MAKEARGS_IMPLEMENTATION
 #include "makeargs.c"
 
-void format()
+void format(void)
 {
 	system("clang-format -i ./*.c ./tests/**/*.c");
 }
 
-void clean()
+void clean(void)
 {
 	char* out = makeargs_get("OUT");
 	char cmd[1024];
@@ -15,7 +15,7 @@ void clean()
 	system(cmd);
 }
 
-void build()
+void build(void)
 {
 	clean();
 
@@ -30,7 +30,7 @@ void build()
 	system(cmd);
 }
 
-void run()
+void run(void)
 {
 	char* out = makeargs_get("OUT");
 

@@ -1,4 +1,3 @@
-// TODO(LucasTA): Remove all usages of __VA_ARGS__ to better support ISO C99
 #ifndef MAKEARGS_FREESTANDING
 #	include <stdio.h>
 #	include <stdlib.h>
@@ -219,25 +218,25 @@ static bool makeargs_nocolor = false;
 				MAKEARGS_FPRINTF(__VA_ARGS__); \
 		} while (0)
 
-#	define MAKEARGS_MSG(format, ...) \
-		MAKEARGS_PRINT(MAKEARGS_STDOUT, format, ##__VA_ARGS__)
+#	define MAKEARGS_MSG(...) MAKEARGS_PRINT(MAKEARGS_STDOUT, __VA_ARGS__)
 
-#	define MAKEARGS_HALT(status, format, ...)                             \
-		do                                                                   \
-		{                                                                    \
-			MAKEARGS_PRINT(MAKEARGS_STDERR,                                    \
-										 MAKEARGS_COLOR_STR(MAKEARGS_TERM_RED, format "\n"), \
-										 ##__VA_ARGS__);                                     \
-			MAKEARGS_EXIT(status);                                             \
+#	define MAKEARGS_HALT(status, ...)                                       \
+		do                                                                     \
+		{                                                                      \
+			MAKEARGS_PRINT(MAKEARGS_STDERR,                                      \
+										 MAKEARGS_COLOR_STR(MAKEARGS_TERM_RED,                 \
+																				MAKEARGS_FIRST(__VA_ARGS__) "\n"), \
+										 MAKEARGS_REST(__VA_ARGS__));                          \
+			MAKEARGS_EXIT(status);                                               \
 		} while (0)
 
-#	define MAKEARGS_ASSERT(status, cond, format, ...)  \
-		do                                                \
-		{                                                 \
-			if (!(cond))                                    \
-			{                                               \
-				MAKEARGS_HALT(status, format, ##__VA_ARGS__); \
-			}                                               \
+#	define MAKEARGS_ASSERT(status, cond, ...) \
+		do                                       \
+		{                                        \
+			if (!(cond))                           \
+			{                                      \
+				MAKEARGS_HALT(status, __VA_ARGS__);  \
+			}                                      \
 		} while (0)
 
 #	define MAKEARGS_FIRST(x, ...) x
